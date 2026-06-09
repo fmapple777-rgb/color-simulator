@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>外壁カラーシミュレーター</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1A1E28;--panel:#22273A;--panel2:#2C3248;--border:#3A4060;
+  --acc:#4F8EF7;--acc2:#3A6FD8;--gold:#E8A830;
+  --green:#2ECC71;--red:#E74C3C;--purple:#9B59B6;
+  --tx:#F0F4FF;--tx2:#A0AACC;--tx3:#5A6080;
+  --r:10px;--rs:6px;
+}
+html,body{height:100%;font-family:-apple-system,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--bg);color:var(--tx);overflow:hidden}
+button,input,select,textarea{font-family:inherit}
+
+/* ===== LAYOUT ===== */
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* TOPBAR */
+.top{height:52px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.top-logo{display:flex;align-items:center;gap:9px}
+.top-icon{width:32px;height:32px;background:linear-gradient(135deg,#4F8EF7,#9B59B6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.top-title{font-size:15px;font-weight:700;letter-spacing:.03em}
+.top-sub{font-size:10px;color:var(--tx2);letter-spacing:.08em}
+.top-spacer{flex:1}
+.top-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--tx2);border-radius:var(--rs);padding:6px 12px;font-size:11px;cursor:pointer;transition:all .15s}
+.top-btn:hover{background:rgba(255,255,255,.14);color:var(--tx)}
+
+/* MAIN */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* LEFT TOOLBAR */
+.toolbar{width:56px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;flex-shrink:0}
+.tb-btn{width:40px;height:40px;border-radius:var(--rs);border:none;background:transparent;color:var(--tx2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;position:relative}
+.tb-btn:hover{background:rgba(255,255,255,.1);color:var(--tx)}
+.tb-btn.active{background:var(--acc);color:#fff}
+.tb-btn[title]:hover::after{content:attr(title);position:absolute;left:52px;top:50%;transform:translateY(-50%);background:#111;color:#fff;font-size:10px;padding:4px 8px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:100}
+.tb-sep{width:32px;height:1px;background:var(--border);margin:4px 0}
+
+/* CANVAS AREA */
+.canvas-wrap{flex:1;position:relative;overflow:hidden;background:#0D0F18;display:flex;align-items:center;justify-content:center}
+#c-photo{position:absolute;display:block}
+#c-mask{position:absolute;display:block;pointer-events:none}
+#c-interact{position:absolute;display:block;cursor:crosshair}
+.canvas-placeholder{text-align:center;color:rgba(255,255,255,.2);pointer-events:none;user-select:none}
+.cp-icon{font-size:52px;margin-bottom:14px}
+.cp-text{font-size:14px;line-height:1.9}
+
+/* ZOOM CONTROLS */
+.zoom-ctrl{position:absolute;bottom:16px;right:16px;display:flex;gap:5px;z-index:10}
+.zoom-btn{width:32px;height:32px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:var(--rs);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.zoom-btn:hover{background:rgba(255,255,255,.15)}
+.zoom-label{background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);color:var(--tx2);border-radius:var(--rs);padding:0 10px;font-size:11px;display:flex;align-items:center}
+
+/* CURSOR PREVIEW */
+#cursor-ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.8);pointer-events:none;display:none;transform:translate(-50%,-50%);z-index:20}
+
+/* RIGHT PANEL */
+.right-panel{width:300px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.right-panel::-webkit-scrollbar{width:4px}
+.right-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.rp-sec{padding:14px 14px;border-bottom:1px solid var(--border)}
+.rp-title{font-size:10px;font-weight:700;color:var(--tx2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.rp-title-dot{width:7px;height:7px;border-radius:50%;background:var(--acc)}
+
+/* TOOL SETTINGS */
+.tolerance-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.tolerance-row label{font-size:10px;color:var(--tx2);white-space:nowrap;min-width:60px}
+.tolerance-row input[type=range]{flex:1;accent-color:var(--acc)}
+.tolerance-row span{font-size:10px;color:var(--tx3);min-width:28px;text-align:right}
+
+/* LAYER LIST */
+.layer-list{display:flex;flex-direction:column;gap:5px;max-height:280px;overflow-y:auto}
+.layer-list::-webkit-scrollbar{width:3px}
+.layer-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.layer-item{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:7px 9px;cursor:pointer;transition:all .14s;-webkit-tap-highlight-color:transparent}
+.layer-item:hover{border-color:var(--acc)}
+.layer-item.sel{border-color:var(--acc);background:rgba(79,142,247,.12)}
+.layer-thumb{width:28px;height:28px;border-radius:4px;border:1px solid rgba(255,255,255,.1);flex-shrink:0;overflow:hidden}
+.layer-thumb canvas{width:100%;height:100%;display:block}
+.layer-info{flex:1;min-width:0}
+.layer-name{font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.layer-px{font-size:9px;color:var(--tx3);margin-top:1px}
+.layer-actions{display:flex;gap:4px}
+.la-btn{width:24px;height:24px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--tx3);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .14s}
+.la-btn:hover{border-color:var(--acc);color:var(--acc)}
+.la-btn.del:hover{border-color:var(--red);color:var(--red)}
+.layer-empty{font-size:11px;color:var(--tx3);text-align:center;padding:16px 0;line-height:1.7}
+
+/* COLOR SECTION */
+.color-display{display:flex;align-items:center;gap:10px;margin-bottom:12px;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px}
+.color-swatch-big{width:44px;height:44px;border-radius:7px;border:2px solid rgba(255,255,255,.12);flex-shrink:0;cursor:pointer;transition:transform .15s}
+.color-swatch-big:hover{transform:scale(1.06)}
+.color-hex-inp{flex:1;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:7px 10px;font-size:13px;font-family:monospace;color:var(--tx);outline:none;transition:border-color .2s}
+.color-hex-inp:focus{border-color:var(--acc)}
+.color-picker-inp{width:0;height:0;opacity:0;position:absolute}
+
+.palette-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:10px}
+.pal-sw{aspect-ratio:1;border-radius:5px;cursor:pointer;border:2px solid transparent;transition:transform .14s,border-color .14s;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.pal-sw:hover{transform:scale(1.12)}
+.pal-sw.sel{border-color:#fff;transform:scale(1.12)}
+
+.apply-btn{width:100%;background:linear-gradient(135deg,var(--acc),var(--purple));color:#fff;border:none;border-radius:var(--rs);padding:11px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;transition:filter .15s,transform .1s;display:flex;align-items:center;justify-content:center;gap:7px}
+.apply-btn:hover{filter:brightness(1.1)}
+.apply-btn:active{transform:scale(.97)}
+.apply-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* BLEND MODE */
+.blend-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.blend-row label{font-size:10px;color:var(--tx2);white-space:nowrap}
+.blend-sel{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:5px 8px;color:var(--tx);font-size:11px;outline:none;cursor:pointer}
+.opacity-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.opacity-row label{font-size:10px;color:var(--tx2);white-space:nowrap;min-width:44px}
+.opacity-row input[type=range]{flex:1;accent-color:var(--acc)}
+.opacity-row span{font-size:10px;color:var(--tx3);min-width:28px;text-align:right}
+
+/* EXPORT */
+.exp-row{display:flex;gap:6px}
+.exp-btn{flex:1;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:9px 6px;font-size:11px;font-weight:600;cursor:pointer;color:var(--tx2);transition:all .14s;display:flex;align-items:center;justify-content:center;gap:5px}
+.exp-btn:hover{border-color:var(--acc);color:var(--acc)}
+.exp-btn.pdf{background:rgba(231,76,60,.08);border-color:rgba(231,76,60,.3);color:#E74C3C}
+.exp-btn.pdf:hover{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* STATUS BAR */
+.status{height:26px;background:var(--panel);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:16px;flex-shrink:0}
+.st-item{font-size:10px;color:var(--tx3);display:flex;align-items:center;gap:5px}
+.st-dot{width:6px;height:6px;border-radius:50%;background:var(--tx3)}
+.st-dot.active{background:var(--green)}
+
+/* TOAST */
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%) translateY(10px);background:#111;color:#fff;font-size:12px;font-weight:600;padding:9px 20px;border-radius:20px;opacity:0;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:opacity .24s,transform .24s;white-space:nowrap;z-index:9999;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:#1A7A42}
+.toast.err{background:#B83030}
+.toast.info{background:#1A3A6A}
+
+/* UPLOAD OVERLAY */
+.upload-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;cursor:pointer}
+.upload-label{display:flex;flex-direction:column;align-items:center;cursor:pointer}
+.upload-label input{display:none}
+.upload-btn{background:linear-gradient(135deg,var(--acc),var(--purple));color:#fff;border:none;border-radius:10px;padding:14px 32px;font-size:14px;font-weight:700;cursor:pointer;margin-top:14px;box-shadow:0 4px 16px rgba(79,142,247,.3)}
+
+/* INFO PILL */
+.info-pill{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.25);border-radius:var(--rs);padding:7px 10px;font-size:10px;color:rgba(79,142,247,.9);line-height:1.7;margin-bottom:10px}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .right-panel{width:260px}
+  .toolbar{width:44px}
+  .tb-btn{width:34px;height:34px;font-size:16px}
+}
+@media(max-width:600px){
+  .top-sub{display:none}
+  .right-panel{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOPBAR -->
+<div class="top">
+  <div class="top-logo">
+    <div class="top-icon">🏠</div>
+    <div>
+      <div class="top-title">外壁カラーシミュレーター</div>
+      <div class="top-sub">WALL COLOR SIMULATOR PRO</div>
+    </div>
+  </div>
+  <div class="top-spacer"></div>
+  <button class="top-btn" onclick="document.getElementById('file-inp').click()">📷 写真を開く</button>
+  <button class="top-btn" onclick="undoAct()">↩ 戻す</button>
+  <button class="top-btn" onclick="redoAct()">↪ やり直す</button>
+  <input type="file" id="file-inp" accept="image/*" style="display:none" onchange="loadPhoto(event)">
+</div>
+
+<div class="main">
+
+<!-- LEFT TOOLBAR -->
+<div class="toolbar">
+  <button class="tb-btn active" id="tb-wand" onclick="setTool('wand')" title="マジックワンド（クリックで自動選択）">🪄</button>
+  <button class="tb-btn" id="tb-brush" onclick="setTool('brush')" title="ブラシ（手動で塗る）">🖌️</button>
+  <button class="tb-btn" id="tb-eraser" onclick="setTool('eraser')" title="消しゴム（選択を消す）">🧹</button>
+  <button class="tb-btn" id="tb-lasso" onclick="setTool('lasso')" title="なげなわ（囲んで選択）">⭕</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="clearSelection()" title="選択解除">✕</button>
+  <button class="tb-btn" onclick="invertSelection()" title="選択反転">⬜</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="zoomIn()" title="ズームイン">🔍</button>
+  <button class="tb-btn" onclick="zoomOut()" title="ズームアウト">🔎</button>
+  <button class="tb-btn" onclick="resetZoom()" title="全体表示">⊡</button>
+</div>
+
+<!-- CANVAS -->
+<div class="canvas-wrap" id="canvas-wrap">
+  <canvas id="c-photo"></canvas>
+  <canvas id="c-mask"></canvas>
+  <canvas id="c-interact"></canvas>
+  <div id="cursor-ring"></div>
+
+  <!-- Upload placeholder -->
+  <div class="upload-overlay" id="upload-overlay">
+    <label class="upload-label">
+      <input type="file" accept="image/*" onchange="loadPhoto(event)">
+      <div class="canvas-placeholder">
+        <div class="cp-icon">🏠</div>
+        <div class="cp-text">
+          建物の写真をアップロード<br>
+          <small style="font-size:11px;opacity:.6">JPG / PNG / HEIC 対応</small>
+        </div>
+      </div>
+      <button class="upload-btn" type="button" onclick="this.closest('label').querySelector('input').click()">📂 写真を選ぶ</button>
+    </label>
+  </div>
+
+  <!-- Zoom controls -->
+  <div class="zoom-ctrl" id="zoom-ctrl" style="display:none">
+    <button class="zoom-btn" onclick="zoomIn()">＋</button>
+    <div class="zoom-label" id="zoom-label">100%</div>
+    <button class="zoom-btn" onclick="zoomOut()">－</button>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+
+  <!-- Tool Settings -->
+  <div class="rp-sec">
+    <div class="rp-title"><div class="rp-title-dot"></div>ツール設定</div>
+    <div class="info-pill" id="tool-hint">
+      🪄 <strong>マジックワンド</strong>：外壁などをクリックすると類似色を自動選択してレイヤーを作成します
+    </div>
+    <div class="tolerance-row">
+      <label>選択の許容値</label>
+      <input type="range" id="tolerance" min="5" max="120" value="40" oninput="updTol()">
+      <span id="tol-v">40</span>
+    </div>
+    <div class="tolerance-row" id="brush-size-row" style="display:none">
+      <label>ブラシサイズ</label>
+      <input type="range" id="brush-sz" min="3" max="80" value="18" oninput="updBrSz()">
+      <span id="br-sz-v">18px</span>
+    </div>
+  </div>
+
+  <!-- Layers -->
+  <div class="rp-sec">
+    <div class="rp-title"><div class="rp-title-dot" style="background:var(--gold)"></div>レイヤー
+      <span style="margin-left:auto;font-size:9px;color:var(--tx3)" id="layer-count">0 レイヤー</span>
+    </div>
+    <div class="layer-list" id="layer-list">
+      <div class="layer-empty">写真をアップロードして<br>外壁をクリックすると<br>レイヤーが作成されます</div>
+    </div>
+    <div style="display:flex;gap:5px;margin-top:8px">
+      <button onclick="addEmptyLayer()" style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:6px;font-size:10px;color:var(--tx2);cursor:pointer">＋ 空レイヤー追加</button>
+      <button onclick="mergeAllLayers()" style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:6px;font-size:10px;color:var(--tx2);cursor:pointer">⬇ 統合</button>
+    </div>
+  </div>
+
+  <!-- Color -->
+  <div class="rp-sec">
+    <div class="rp-title"><div class="rp-title-dot" style="background:var(--purple)"></div>カラー設定</div>
+
+    <div class="color-display">
+      <div class="color-swatch-big" id="color-swatch-big" style="background:#F5F0DC" onclick="document.getElementById('color-picker-inp').click()"></div>
+      <input type="color" class="color-picker-inp" id="color-picker-inp" value="#F5F0DC" oninput="onColorPicker(this.value)">
+      <input type="text" class="color-hex-inp" id="color-hex-inp" value="#F5F0DC" maxlength="7" placeholder="#RRGGBB" oninput="onHexInput(this.value)">
+    </div>
+
+    <!-- Preset palette -->
+    <div class="palette-grid" id="palette-grid"></div>
+
+    <!-- Blend mode & opacity -->
+    <div class="blend-row">
+      <label>合成モード</label>
+      <select class="blend-sel" id="blend-mode" onchange="updatePreview()">
+        <option value="multiply" selected>乗算（影を保持）</option>
+        <option value="color">カラー（自然な色替え）</option>
+        <option value="hue">色相</option>
+        <option value="source-over">通常（べた塗り）</option>
+        <option value="overlay">オーバーレイ</option>
+        <option value="soft-light">ソフトライト</option>
+      </select>
+    </div>
+    <div class="opacity-row">
+      <label>不透明度</label>
+      <input type="range" id="color-opa" min="10" max="100" value="80" oninput="updColorOpa()">
+      <span id="color-opa-v">80%</span>
+    </div>
+
+    <button class="apply-btn" id="apply-btn" onclick="applyColorToLayer()" disabled>
+      🎨 選択レイヤーに色を適用
+    </button>
+  </div>
+
+  <!-- Export -->
+  <div class="rp-sec">
+    <div class="rp-title"><div class="rp-title-dot" style="background:var(--green)"></div>書き出し・保存</div>
+    <div class="exp-row" style="margin-bottom:7px">
+      <button class="exp-btn" onclick="exportPNG()">🖼️ PNG保存</button>
+      <button class="exp-btn" onclick="exportComparison()">↔️ 比較画像</button>
+    </div>
+    <div class="exp-row" style="margin-bottom:7px">
+      <button class="exp-btn" onclick="saveWork()">💾 作業保存</button>
+      <button class="exp-btn" onclick="loadWork()">📂 作業再開</button>
+    </div>
+    <div class="exp-row">
+      <button class="exp-btn pdf" onclick="exportPDF()">📄 PDF提案書</button>
+    </div>
+  </div>
+
+</div><!-- end right-panel -->
+</div><!-- end main -->
+
+<!-- STATUS BAR -->
+<div class="status">
+  <div class="st-item"><div class="st-dot" id="st-dot"></div><span id="st-tool">待機中</span></div>
+  <div class="st-item">座標: <span id="st-xy">-</span></div>
+  <div class="st-item">画像: <span id="st-size">-</span></div>
+  <div class="st-item">レイヤー: <span id="st-layer">0</span></div>
+  <div class="st-item" style="margin-left:auto;color:rgba(255,255,255,.3);font-size:9px">Cmd/Ctrl+Z で元に戻す</div>
+</div>
+
+</div><!-- end app -->
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+/* =====================================================
+   CANVAS SETUP
+===================================================== */
+const wrap       = document.getElementById('canvas-wrap');
+const cPhoto     = document.getElementById('c-photo');
+const cMask      = document.getElementById('c-mask');
+const cInteract  = document.getElementById('c-interact');
+const ctxPhoto   = cPhoto.getContext('2d');
+const ctxMask    = cMask.getContext('2d');
+const ctxI       = cInteract.getContext('2d');
+
+let photoImg = null;
+let IW = 0, IH = 0;   // image natural size
+let CW = 0, CH = 0;   // canvas display size
+let zoom = 1.0;
+let panX = 0, panY = 0;
+
+/* =====================================================
+   STATE
+===================================================== */
+let curTool = 'wand';
+let tolerance = 40;
+let brushSz   = 18;
+let curColor  = '#F5F0DC';
+let colorOpa  = 0.80;
+let blendMode = 'multiply';
+
+// Layers: [{id, name, mask(Uint8Array IW*IH), color, opacity, blend, visible}]
+let layers = [];
+let selLayerIdx = -1;
+let layerCounter = 0;
+
+// Undo/Redo: store serialized layer states
+const undoStack = [], redoStack = [], MAX_UNDO = 30;
+
+// Lasso path
+let lassoPath = [];
+let lassoActive = false;
+
+// Pan/drag
+let isPanning = false, panStartX = 0, panStartY = 0;
+
+/* =====================================================
+   CANVAS RESIZE & PLACEMENT
+===================================================== */
+function placeCanvases() {
+  if (!photoImg) return;
+  const ww = wrap.clientWidth, wh = wrap.clientHeight;
+  const fitW = ww / IW, fitH = wh / IH;
+  const fit  = Math.min(fitW, fitH, 1.0);
+  if (zoom === 'init') zoom = fit * 0.95;
+
+  CW = Math.round(IW * zoom);
+  CH = Math.round(IH * zoom);
+
+  [cPhoto, cMask, cInteract].forEach(c => {
+    c.width  = CW; c.height = CH;
+    c.style.width  = CW + 'px'; c.style.height = CH + 'px';
+    c.style.left   = Math.round((ww - CW) / 2 + panX) + 'px';
+    c.style.top    = Math.round((wh - CH) / 2 + panY) + 'px';
+  });
+  document.getElementById('cursor-ring').style.left = '0px';
+  document.getElementById('zoom-label').textContent = Math.round(zoom * 100) + '%';
+  redrawAll();
+}
+
+function redrawAll() {
+  if (!photoImg) return;
+  // Photo layer
+  ctxPhoto.clearRect(0, 0, CW, CH);
+  ctxPhoto.drawImage(photoImg, 0, 0, CW, CH);
+
+  // Composite all visible layers onto mask canvas
+  ctxMask.clearRect(0, 0, CW, CH);
+  for (const layer of layers) {
+    if (!layer.visible) continue;
+    renderLayer(layer);
+  }
+
+  // Interaction canvas (selection outline)
+  ctxI.clearRect(0, 0, CW, CH);
+  if (selLayerIdx >= 0 && layers[selLayerIdx]) {
+    drawSelectionOutline(layers[selLayerIdx].mask);
+  }
+}
+
+function renderLayer(layer) {
+  if (!layer.mask || !layer.color) return;
+  // Create offscreen canvas for this layer
+  const off = document.createElement('canvas');
+  off.width = CW; off.height = CH;
+  const offCtx = off.getContext('2d');
+
+  // Fill color onto masked pixels
+  let hex = layer.color.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+  const n = parseInt(hex, 16);
+  const fr=(n>>16)&255, fg=(n>>8)&255, fb=n&255;
+
+  const imgData = offCtx.createImageData(CW, CH);
+  const d = imgData.data;
+
+  for (let cy = 0; cy < CH; cy++) {
+    for (let cx = 0; cx < CW; cx++) {
+      // Map canvas pixel → image pixel
+      const ix = Math.round(cx / zoom);
+      const iy = Math.round(cy / zoom);
+      if (ix >= IW || iy >= IH) continue;
+      const mi = iy * IW + ix;
+      if (!layer.mask[mi]) continue;
+      const pi = (cy * CW + cx) * 4;
+      d[pi]   = fr;
+      d[pi+1] = fg;
+      d[pi+2] = fb;
+      d[pi+3] = Math.round(layer.opacity * 255);
+    }
+  }
+  offCtx.putImageData(imgData, 0, 0);
+
+  // Composite onto mask canvas with blend mode
+  ctxMask.save();
+  ctxMask.globalCompositeOperation = layer.blend;
+  ctxMask.globalAlpha = 1;
+  ctxMask.drawImage(off, 0, 0);
+  ctxMask.restore();
+}
+
+/* =====================================================
+   LOAD PHOTO
+===================================================== */
+function loadPhoto(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      photoImg = img;
+      IW = img.naturalWidth; IH = img.naturalHeight;
+      zoom = 'init';
+      panX = panY = 0;
+      layers = []; selLayerIdx = -1; layerCounter = 0;
+      undoStack.length = redoStack.length = 0;
+
+      document.getElementById('upload-overlay').style.display = 'none';
+      document.getElementById('zoom-ctrl').style.display = 'flex';
+      document.getElementById('st-size').textContent = `${IW}×${IH}px`;
+      document.getElementById('ai-ribbon') && (document.getElementById('ai-ribbon').style.display='none');
+
+      placeCanvases();
+      buildLayerList();
+      updateSummary();
+      toast('✅ 写真を読み込みました。外壁をクリックして選択してください', 'ok');
+    };
+    img.src = ev.target.result;
+    e.target.value = '';
+  };
+  reader.readAsDataURL(f);
+}
+window.addEventListener('resize', () => { if (photoImg) placeCanvases(); });
+
+/* =====================================================
+   COORDINATE UTILS
+===================================================== */
+function canvasRect() { return cInteract.getBoundingClientRect(); }
+function toCanvasXY(e) {
+  const r = canvasRect();
+  const src = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
+  return { cx: src.clientX - r.left, cy: src.clientY - r.top };
+}
+function toImageXY(cx, cy) {
+  return { ix: Math.max(0, Math.min(IW-1, Math.round(cx / zoom))),
+           iy: Math.max(0, Math.min(IH-1, Math.round(cy / zoom))) };
+}
+
+/* =====================================================
+   POINTER EVENTS
+===================================================== */
+cInteract.addEventListener('pointerdown', onPointerDown);
+cInteract.addEventListener('pointermove', onPointerMove);
+cInteract.addEventListener('pointerup',   onPointerUp);
+cInteract.addEventListener('pointerleave', onPointerUp);
+cInteract.addEventListener('touchstart',  e => e.preventDefault(), {passive:false});
+cInteract.addEventListener('touchmove',   e => e.preventDefault(), {passive:false});
+
+let drawing = false;
+
+function onPointerDown(e) {
+  if (!photoImg) return;
+  e.preventDefault();
+  const {cx,cy} = toCanvasXY(e);
+  const {ix,iy} = toImageXY(cx,cy);
+
+  if (e.altKey || e.button === 1) {
+    // Pan mode
+    isPanning = true; panStartX = e.clientX - panX; panStartY = e.clientY - panY; return;
+  }
+
+  if (curTool === 'wand') {
+    saveUndo();
+    doMagicWand(ix, iy);
+  } else if (curTool === 'brush') {
+    saveUndo(); drawing = true;
+    paintAt(cx, cy);
+  } else if (curTool === 'eraser') {
+    saveUndo(); drawing = true;
+    eraseAt(cx, cy);
+  } else if (curTool === 'lasso') {
+    if (!lassoActive) {
+      lassoActive = true; lassoPath = [{x:cx,y:cy}];
+    }
+  }
+}
+
+function onPointerMove(e) {
+  if (!photoImg) return;
+  const {cx,cy} = toCanvasXY(e);
+  const {ix,iy} = toImageXY(cx,cy);
+  document.getElementById('st-xy').textContent = `${ix}, ${iy}`;
+
+  // Cursor ring
+  updateCursorRing(cx, cy);
+
+  if (isPanning) {
+    panX = e.clientX - panStartX; panY = e.clientY - panStartY;
+    placeCanvases(); return;
+  }
+  if (drawing && curTool === 'brush') paintAt(cx, cy);
+  if (drawing && curTool === 'eraser') eraseAt(cx, cy);
+  if (lassoActive && curTool === 'lasso') {
+    lassoPath.push({x:cx,y:cy});
+    drawLassoPreview();
+  }
+}
+
+function onPointerUp(e) {
+  isPanning = false;
+  if (drawing) { drawing = false; redrawAll(); updateLayerList(); }
+  if (lassoActive && curTool === 'lasso' && lassoPath.length > 3) {
+    saveUndo();
+    finalizeLasso();
+    lassoActive = false; lassoPath = [];
+    ctxI.clearRect(0, 0, CW, CH);
+  }
+}
+
+// Wheel zoom
+wrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  zoom = Math.max(0.1, Math.min(8, zoom * delta));
+  placeCanvases();
+}, {passive:false});
+
+/* =====================================================
+   MAGIC WAND — flood fill by color similarity
+===================================================== */
+function doMagicWand(startX, startY) {
+  if (!photoImg) return;
+  // Get photo pixel data
+  const tmp = document.createElement('canvas');
+  tmp.width = IW; tmp.height = IH;
+  tmp.getContext('2d').drawImage(photoImg, 0, 0, IW, IH);
+  const baseData = tmp.getContext('2d').getImageData(0, 0, IW, IH).data;
+
+  const i0 = (startY * IW + startX) * 4;
+  const tr = baseData[i0], tg = baseData[i0+1], tb = baseData[i0+2];
+
+  const mask = new Uint8Array(IW * IH);
+  const visited = new Uint8Array(IW * IH);
+  const queue = [startY * IW + startX];
+  visited[startY * IW + startX] = 1;
+
+  let painted = 0;
+  while (queue.length && painted < IW * IH) {
+    const pos = queue.pop();
+    const px  = pos % IW, py = Math.floor(pos / IW);
+    const pi  = pos * 4;
+    const dr  = baseData[pi]   - tr;
+    const dg  = baseData[pi+1] - tg;
+    const db  = baseData[pi+2] - tb;
+    if (Math.sqrt(dr*dr + dg*dg + db*db) > tolerance) continue;
+    mask[pos] = 1; painted++;
+    const ns = [
+      px>0    ? pos-1 : -1,
+      px<IW-1 ? pos+1 : -1,
+      py>0    ? pos-IW : -1,
+      py<IH-1 ? pos+IW : -1,
+    ];
+    for (const n of ns) {
+      if (n >= 0 && !visited[n]) { visited[n] = 1; queue.push(n); }
+    }
+  }
+
+  if (painted < 10) { toast('選択エリアが小さすぎます。許容値を上げてみてください'); return; }
+
+  // Create new layer or add to selected layer if shift
+  const layerName = `レイヤー ${++layerCounter}`;
+  const layer = {
+    id: Date.now(), name: layerName,
+    mask, color: curColor,
+    opacity: colorOpa, blend: blendMode,
+    visible: true,
+    pixelCount: painted
+  };
+  layers.push(layer);
+  selLayerIdx = layers.length - 1;
+
+  buildLayerList();
+  redrawAll();
+  updateSummary();
+  document.getElementById('apply-btn').disabled = false;
+  toast(`✅ ${painted.toLocaleString()}px を選択しました`, 'ok');
+}
+
+/* =====================================================
+   BRUSH / ERASER on selected layer
+===================================================== */
+let lastBrushX = -1, lastBrushY = -1;
+
+function paintAt(cx, cy) {
+  if (selLayerIdx < 0) {
+    // No layer selected — create one
+    const mask = new Uint8Array(IW * IH);
+    const layer = { id: Date.now(), name: `レイヤー ${++layerCounter}`, mask, color: curColor, opacity: colorOpa, blend: blendMode, visible: true, pixelCount: 0 };
+    layers.push(layer); selLayerIdx = layers.length - 1;
+    buildLayerList();
+  }
+  const layer = layers[selLayerIdx];
+  const r = Math.round(brushSz / zoom / 2);
+  const {ix,iy} = toImageXY(cx,cy);
+  fillCircle(layer.mask, ix, iy, r, 1);
+  lastBrushX = cx; lastBrushY = cy;
+
+  // Quick preview
+  ctxMask.clearRect(0, 0, CW, CH);
+  for (const l of layers) if (l.visible) renderLayer(l);
+}
+
+function eraseAt(cx, cy) {
+  if (selLayerIdx < 0) return;
+  const layer = layers[selLayerIdx];
+  const r = Math.round(brushSz / zoom / 2);
+  const {ix,iy} = toImageXY(cx,cy);
+  fillCircle(layer.mask, ix, iy, r, 0);
+  ctxMask.clearRect(0, 0, CW, CH);
+  for (const l of layers) if (l.visible) renderLayer(l);
+}
+
+function fillCircle(mask, cx, cy, r, val) {
+  for (let dy = -r; dy <= r; dy++) {
+    for (let dx = -r; dx <= r; dx++) {
+      if (dx*dx + dy*dy <= r*r) {
+        const x = cx+dx, y = cy+dy;
+        if (x>=0 && x<IW && y>=0 && y<IH) mask[y*IW+x] = val;
+      }
+    }
+  }
+}
+
+/* =====================================================
+   LASSO
+===================================================== */
+function drawLassoPreview() {
+  ctxI.clearRect(0, 0, CW, CH);
+  if (lassoPath.length < 2) return;
+  ctxI.save();
+  ctxI.strokeStyle = '#4F8EF7';
+  ctxI.lineWidth = 1.5;
+  ctxI.setLineDash([5, 3]);
+  ctxI.beginPath();
+  ctxI.moveTo(lassoPath[0].x, lassoPath[0].y);
+  for (const p of lassoPath) ctxI.lineTo(p.x, p.y);
+  ctxI.stroke();
+  ctxI.restore();
+}
+
+function finalizeLasso() {
+  if (!photoImg || lassoPath.length < 3) return;
+  const mask = new Uint8Array(IW * IH);
+
+  // Create lasso mask using ray casting
+  for (let iy = 0; iy < IH; iy++) {
+    for (let ix = 0; ix < IW; ix++) {
+      const cx = ix * zoom, cy = iy * zoom;
+      if (pointInPolygon(cx, cy, lassoPath)) mask[iy*IW+ix] = 1;
+    }
+  }
+
+  const painted = mask.reduce((a,b) => a+b, 0);
+  if (painted < 10) { toast('選択エリアが小さすぎます'); return; }
+
+  const layer = { id: Date.now(), name: `レイヤー ${++layerCounter}`, mask, color: curColor, opacity: colorOpa, blend: blendMode, visible: true, pixelCount: painted };
+  layers.push(layer);
+  selLayerIdx = layers.length - 1;
+  buildLayerList(); redrawAll(); updateSummary();
+  document.getElementById('apply-btn').disabled = false;
+  toast(`✅ なげなわで ${painted.toLocaleString()}px を選択`, 'ok');
+}
+
+function pointInPolygon(x, y, poly) {
+  let inside = false;
+  for (let i=0, j=poly.length-1; i<poly.length; j=i++) {
+    const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
+    if (((yi>y) !== (yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi)) inside = !inside;
+  }
+  return inside;
+}
+
+/* =====================================================
+   SELECTION OUTLINE
+===================================================== */
+function drawSelectionOutline(mask) {
+  if (!mask) return;
+  ctxI.save();
+  ctxI.strokeStyle = 'rgba(79,142,247,0.9)';
+  ctxI.lineWidth = 1;
+  ctxI.setLineDash([4, 3]);
+  // Draw border pixels
+  for (let iy = 1; iy < IH-1; iy++) {
+    for (let ix = 1; ix < IW-1; ix++) {
+      if (!mask[iy*IW+ix]) continue;
+      const isEdge = !mask[(iy-1)*IW+ix] || !mask[(iy+1)*IW+ix] || !mask[iy*IW+ix-1] || !mask[iy*IW+ix+1];
+      if (isEdge) {
+        const cx = Math.round(ix*zoom), cy = Math.round(iy*zoom);
+        ctxI.strokeRect(cx, cy, 1, 1);
+      }
+    }
+  }
+  ctxI.restore();
+}
+
+/* =====================================================
+   CURSOR RING
+===================================================== */
+function updateCursorRing(cx, cy) {
+  const ring = document.getElementById('cursor-ring');
+  if (curTool === 'brush' || curTool === 'eraser') {
+    const sz = brushSz;
+    ring.style.display = 'block';
+    ring.style.width   = sz + 'px';
+    ring.style.height  = sz + 'px';
+    ring.style.left    = (cInteract.offsetLeft + cx) + 'px';
+    ring.style.top     = (cInteract.offsetTop  + cy) + 'px';
+    ring.style.borderColor = curTool === 'eraser' ? 'rgba(231,76,60,.8)' : 'rgba(255,255,255,.8)';
+  } else {
+    ring.style.display = 'none';
+  }
+}
+
+/* =====================================================
+   APPLY COLOR TO LAYER
+===================================================== */
+function applyColorToLayer() {
+  if (selLayerIdx < 0) { toast('先にレイヤーを選択してください', 'err'); return; }
+  saveUndo();
+  const layer = layers[selLayerIdx];
+  layer.color   = curColor;
+  layer.opacity = colorOpa;
+  layer.blend   = blendMode;
+  redrawAll();
+  buildLayerList();
+  updateSummary();
+  toast(`✅ ${layer.name} に ${curColor} を適用しました`, 'ok');
+}
+
+/* =====================================================
+   LAYER MANAGEMENT
+===================================================== */
+function buildLayerList() {
+  const list = document.getElementById('layer-list');
+  document.getElementById('layer-count').textContent = layers.length + ' レイヤー';
+  document.getElementById('st-layer').textContent = layers.length;
+
+  if (!layers.length) {
+    list.innerHTML = '<div class="layer-empty">写真をアップロードして<br>外壁をクリックすると<br>レイヤーが作成されます</div>';
+    return;
+  }
+  list.innerHTML = '';
+  // Reverse order (top layer first)
+  [...layers].reverse().forEach((layer, ri) => {
+    const i = layers.length - 1 - ri;
+    const el = document.createElement('div');
+    el.className = 'layer-item' + (i === selLayerIdx ? ' sel' : '');
+    el.id = 'li-' + layer.id;
+
+    // Thumbnail
+    const thumb = document.createElement('canvas');
+    thumb.width = 28; thumb.height = 28;
+    const tctx = thumb.getContext('2d');
+    if (photoImg) {
+      tctx.drawImage(photoImg, 0, 0, 28, 28);
+      // Quick color overlay
+      tctx.globalCompositeOperation = 'multiply';
+      tctx.fillStyle = layer.color;
+      tctx.globalAlpha = layer.opacity;
+      tctx.fillRect(0, 0, 28, 28);
+    }
+
+    const thumbWrap = document.createElement('div');
+    thumbWrap.className = 'layer-thumb';
+    thumbWrap.appendChild(thumb);
+
+    const px = (layer.mask ? layer.mask.reduce((a,b)=>a+b,0) : 0).toLocaleString();
+    el.innerHTML = `
+      <div class="layer-thumb"><div style="width:28px;height:28px;border-radius:4px;background:${layer.color};border:1px solid rgba(255,255,255,.1)"></div></div>
+      <div class="layer-info">
+        <div class="layer-name">${layer.name}</div>
+        <div class="layer-px">${px}px ・ ${layer.blend}</div>
+      </div>
+      <div class="layer-actions">
+        <button class="la-btn" onclick="toggleLayerVis(${i});event.stopPropagation()" title="${layer.visible?'非表示':'表示'}">${layer.visible?'👁️':'🙈'}</button>
+        <button class="la-btn del" onclick="deleteLayer(${i});event.stopPropagation()" title="削除">✕</button>
+      </div>`;
+    el.onclick = () => selectLayer(i);
+    list.appendChild(el);
+  });
+}
+
+function selectLayer(i) {
+  selLayerIdx = i;
+  buildLayerList();
+  redrawAll();
+  document.getElementById('apply-btn').disabled = false;
+  toast(`「${layers[i].name}」を選択`);
+}
+
+function toggleLayerVis(i) {
+  layers[i].visible = !layers[i].visible;
+  buildLayerList(); redrawAll();
+}
+
+function deleteLayer(i) {
+  saveUndo();
+  layers.splice(i, 1);
+  if (selLayerIdx >= layers.length) selLayerIdx = layers.length - 1;
+  buildLayerList(); redrawAll(); updateSummary();
+  if (!layers.length) document.getElementById('apply-btn').disabled = true;
+}
+
+function addEmptyLayer() {
+  if (!photoImg) { toast('先に写真をアップロードしてください', 'err'); return; }
+  const mask = new Uint8Array(IW * IH);
+  layers.push({ id: Date.now(), name: `レイヤー ${++layerCounter}`, mask, color: curColor, opacity: colorOpa, blend: blendMode, visible: true, pixelCount: 0 });
+  selLayerIdx = layers.length - 1;
+  buildLayerList(); updateSummary();
+  document.getElementById('apply-btn').disabled = false;
+  toast('空レイヤーを追加しました');
+}
+
+function mergeAllLayers() {
+  if (layers.length < 2) { toast('2つ以上のレイヤーが必要です'); return; }
+  saveUndo();
+  const merged = new Uint8Array(IW * IH);
+  for (const l of layers) if (l.mask) for (let i=0;i<merged.length;i++) if (l.mask[i]) merged[i]=1;
+  layers = [{ id: Date.now(), name: '統合レイヤー', mask: merged, color: curColor, opacity: colorOpa, blend: blendMode, visible: true }];
+  selLayerIdx = 0;
+  buildLayerList(); redrawAll(); updateSummary();
+  toast('すべてのレイヤーを統合しました', 'ok');
+}
+
+function clearSelection() {
+  selLayerIdx = -1;
+  buildLayerList(); redrawAll();
+  document.getElementById('apply-btn').disabled = true;
+}
+
+function invertSelection() {
+  if (selLayerIdx < 0) { toast('レイヤーを選択してください'); return; }
+  saveUndo();
+  const m = layers[selLayerIdx].mask;
+  for (let i=0;i<m.length;i++) m[i] = m[i] ? 0 : 1;
+  redrawAll(); buildLayerList();
+}
+
+/* =====================================================
+   COLOR
+===================================================== */
+const PALETTE = [
+  ['#FFFFFF','#F5F5F0','#F5F0DC','#E8DCC8','#E0D0B0','#C8A878'],
+  ['#A07850','#7A5840','#6A4828','#4A3020','#3A2818','#1A1008'],
+  ['#E8E8E8','#C0C0C0','#909090','#707070','#484848','#282828'],
+  ['#708090','#506070','#384858','#284060','#1A2840','#0C1828'],
+  ['#D4E8D0','#90C890','#508050','#386038','#204020','#102010'],
+  ['#E8D0C0','#D0A080','#B87050','#904030','#682020','#401010'],
+];
+
+function buildPalette() {
+  const grid = document.getElementById('palette-grid');
+  PALETTE.forEach(row => row.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'pal-sw';
+    sw.style.background = c;
+    sw.title = c;
+    sw.onclick = () => setColor(c);
+    grid.appendChild(sw);
+  }));
+}
+
+function setColor(hex) {
+  curColor = hex;
+  document.getElementById('color-swatch-big').style.background = hex;
+  document.getElementById('color-hex-inp').value = hex.toUpperCase();
+  document.getElementById('color-picker-inp').value = hex;
+  document.querySelectorAll('.pal-sw').forEach(s => s.classList.toggle('sel', s.title === hex));
+}
+
+function onColorPicker(v) { setColor(v); updatePreview(); }
+function onHexInput(v) {
+  if (/^#[0-9A-Fa-f]{6}$/.test(v)) { setColor(v); updatePreview(); }
+}
+function updColorOpa() {
+  colorOpa = +document.getElementById('color-opa').value / 100;
+  document.getElementById('color-opa-v').textContent = Math.round(colorOpa*100) + '%';
+  updatePreview();
+}
+function updatePreview() {
+  blendMode = document.getElementById('blend-mode').value;
+  if (selLayerIdx >= 0 && layers[selLayerIdx]) {
+    layers[selLayerIdx].color   = curColor;
+    layers[selLayerIdx].opacity = colorOpa;
+    layers[selLayerIdx].blend   = blendMode;
+    redrawAll();
+  }
+}
+
+/* =====================================================
+   TOOL MANAGEMENT
+===================================================== */
+const TOOL_HINTS = {
+  wand:   '🪄 <strong>マジックワンド</strong>：外壁などをクリックすると類似色を自動選択してレイヤーを作成します',
+  brush:  '🖌️ <strong>ブラシ</strong>：選択レイヤーの上をなぞって範囲を手動で追加します',
+  eraser: '🧹 <strong>消しゴム</strong>：選択レイヤーの範囲をなぞって削除します',
+  lasso:  '⭕ <strong>なげなわ</strong>：ドラッグで囲んだ範囲をレイヤーとして追加します',
+};
+function setTool(t) {
+  curTool = t;
+  ['wand','brush','eraser','lasso'].forEach(id => document.getElementById('tb-'+id).classList.toggle('active', id===t));
+  document.getElementById('tool-hint').innerHTML = TOOL_HINTS[t];
+  document.getElementById('brush-size-row').style.display = (t==='brush'||t==='eraser') ? 'flex' : 'none';
+  document.getElementById('st-tool').textContent = {wand:'マジックワンド',brush:'ブラシ',eraser:'消しゴム',lasso:'なげなわ'}[t];
+  document.getElementById('st-dot').classList.toggle('active', !!photoImg);
+  cInteract.style.cursor = t==='brush'||t==='eraser' ? 'none' : (t==='lasso' ? 'crosshair' : 'cell');
+}
+function updTol() { tolerance = +document.getElementById('tolerance').value; document.getElementById('tol-v').textContent = tolerance; }
+function updBrSz() { brushSz = +document.getElementById('brush-sz').value; document.getElementById('br-sz-v').textContent = brushSz+'px'; }
+
+/* =====================================================
+   ZOOM / PAN
+===================================================== */
+function zoomIn()    { zoom = Math.min(8, zoom*1.25); placeCanvases(); }
+function zoomOut()   { zoom = Math.max(0.1, zoom/1.25); placeCanvases(); }
+function resetZoom() { zoom='init'; panX=panY=0; placeCanvases(); }
+
+/* =====================================================
+   UNDO / REDO
+===================================================== */
+function serializeLayers() {
+  return JSON.stringify(layers.map(l => ({
+    ...l, mask: l.mask ? Array.from(l.mask) : null
+  })));
+}
+function deserializeLayers(s) {
+  return JSON.parse(s).map(l => ({
+    ...l, mask: l.mask ? new Uint8Array(l.mask) : null
+  }));
+}
+function saveUndo() {
+  undoStack.push(serializeLayers());
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack.length = 0;
+}
+function undoAct() {
+  if (!undoStack.length) { toast('これ以上戻せません'); return; }
+  redoStack.push(serializeLayers());
+  layers = deserializeLayers(undoStack.pop());
+  selLayerIdx = Math.min(selLayerIdx, layers.length-1);
+  buildLayerList(); redrawAll(); updateSummary();
+}
+function redoAct() {
+  if (!redoStack.length) { toast('これ以上やり直せません'); return; }
+  undoStack.push(serializeLayers());
+  layers = deserializeLayers(redoStack.pop());
+  buildLayerList(); redrawAll(); updateSummary();
+}
+document.addEventListener('keydown', e => {
+  const c = e.ctrlKey||e.metaKey;
+  if (c&&e.key==='z'){e.preventDefault();undoAct();}
+  if (c&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redoAct();}
+  if (e.key==='Escape'){clearSelection();}
+});
+
+/* =====================================================
+   SUMMARY
+===================================================== */
+function updateSummary() { buildLayerList(); }
+
+/* =====================================================
+   EXPORT
+===================================================== */
+function compositeImage() {
+  if (!photoImg) return null;
+  const off = document.createElement('canvas');
+  off.width = IW; off.height = IH;
+  const ctx = off.getContext('2d');
+  ctx.drawImage(photoImg, 0, 0, IW, IH);
+  for (const layer of layers) {
+    if (!layer.visible || !layer.mask || !layer.color) continue;
+    let hex = layer.color.replace('#','');
+    if (hex.length===3) hex=hex.split('').map(c=>c+c).join('');
+    const n = parseInt(hex,16);
+    const fr=(n>>16)&255,fg=(n>>8)&255,fb=n&255;
+    const imgData = ctx.getImageData(0,0,IW,IH);
+    const d = imgData.data;
+    for (let i=0;i<layer.mask.length;i++) {
+      if (!layer.mask[i]) continue;
+      const p = i*4;
+      if (layer.blend==='multiply') {
+        d[p]  =Math.round(d[p]  *fr/255);
+        d[p+1]=Math.round(d[p+1]*fg/255);
+        d[p+2]=Math.round(d[p+2]*fb/255);
+      } else if (layer.blend==='source-over') {
+        const a = layer.opacity;
+        d[p]  =Math.round(d[p]  *(1-a)+fr*a);
+        d[p+1]=Math.round(d[p+1]*(1-a)+fg*a);
+        d[p+2]=Math.round(d[p+2]*(1-a)+fb*a);
+      } else {
+        // color / hue — simple tint
+        const a = layer.opacity * 0.6;
+        d[p]  =Math.round(d[p]  *(1-a)+fr*a);
+        d[p+1]=Math.round(d[p+1]*(1-a)+fg*a);
+        d[p+2]=Math.round(d[p+2]*(1-a)+fb*a);
+      }
+    }
+    ctx.putImageData(imgData,0,0);
+  }
+  return off;
+}
+
+function exportPNG() {
+  const off = compositeImage(); if (!off) { toast('写真をアップロードしてください','err'); return; }
+  const link = document.createElement('a');
+  link.download = '外壁カラーシミュレーション.png';
+  link.href = off.toDataURL('image/png');
+  link.click(); toast('✅ PNG画像を保存しました','ok');
+}
+
+function exportComparison() {
+  if (!photoImg) { toast('写真をアップロードしてください','err'); return; }
+  const after = compositeImage();
+  const pad=20, lbH=30, W=IW*2+pad*3, H=IH+lbH+pad*2;
+  const off = document.createElement('canvas'); off.width=W; off.height=H;
+  const ctx = off.getContext('2d');
+  ctx.fillStyle='#1A1E28'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#A0AACC'; ctx.font='bold 16px sans-serif';
+  ctx.fillText('施工前（現状）', pad, lbH+pad-4);
+  ctx.drawImage(photoImg, pad, lbH+pad, IW, IH);
+  ctx.fillStyle='#4F8EF7';
+  ctx.fillText('施工後（提案カラー）', IW+pad*2, lbH+pad-4);
+  ctx.drawImage(after, IW+pad*2, lbH+pad, IW, IH);
+  const link = document.createElement('a');
+  link.download = '外壁カラー比較.png'; link.href = off.toDataURL('image/png'); link.click();
+  toast('✅ 比較画像を保存しました','ok');
+}
+
+function exportPDF() {
+  if (!photoImg) { toast('写真をアップロードしてください','err'); return; }
+  const after = compositeImage();
+  const beforeSrc = photoImg.src;
+  const afterSrc  = after.toDataURL('image/jpeg',0.92);
+  const colorInfo = layers.map(l => `<tr><td style="padding:4px 10px;border-bottom:1px solid #eee"><div style="display:inline-block;width:14px;height:14px;background:${l.color};border-radius:3px;margin-right:6px;vertical-align:middle"></div>${l.name}</td><td style="padding:4px 10px;border-bottom:1px solid #eee;font-family:monospace">${l.color}</td></tr>`).join('');
+
+  const div = document.createElement('div');
+  div.style.cssText = 'width:1040px;font-family:sans-serif;background:#fff;padding:0';
+  div.innerHTML = `
+    <div style="background:#103D70;color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:16px;font-weight:700;letter-spacing:.05em">外壁塗装カラーシミュレーション 御提案書</div><div style="font-size:10px;opacity:.65;margin-top:3px">EXTERIOR PAINTING COLOR SIMULATION PROPOSAL</div></div>
+      <div style="text-align:right;font-size:10px;opacity:.65;line-height:1.7">株式会社〇〇リフォーム<br>TEL: 0120-XXX-XXX</div>
+    </div>
+    <div style="height:3px;background:linear-gradient(90deg,#E8A830,#F0C860,#E8A830)"></div>
+    <div style="padding:12px 24px;background:#F4F7FB;border-bottom:1px solid #DDE3EC;display:flex;gap:20px;font-size:12px">
+      <span>お客様名：<input style="border:none;border-bottom:1px solid #ccc;width:130px;font-size:12px" placeholder="山田 太郎　様"></span>
+      <span>住所：<input style="border:none;border-bottom:1px solid #ccc;width:200px;font-size:12px" placeholder="東京都〇〇区〇〇1-2-3"></span>
+      <span>日付：<input style="border:none;border-bottom:1px solid #ccc;width:110px;font-size:12px" placeholder="${new Date().toLocaleDateString('ja')}"></span>
+    </div>
+    <div style="display:flex;padding:16px 24px;gap:18px">
+      <div style="flex:1">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;padding:4px 9px;background:#F0F2F6;border:1px solid #DDE3EC;border-radius:3px;margin-bottom:6px;text-align:center;color:#40506A">◼ 施工前（現状）</div>
+        <img src="${beforeSrc}" style="width:100%;border:1px solid #ddd;border-radius:3px;display:block">
+        <div style="font-size:9px;color:#888;text-align:center;padding-top:3px">※現状の外壁カラー</div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;padding:4px 9px;background:#E8F1FB;border:1px solid #BCD0EE;border-radius:3px;margin-bottom:6px;text-align:center;color:#1A5CA0">◼ 施工後（提案カラー）</div>
+        <img src="${afterSrc}" style="width:100%;border:1px solid #ddd;border-radius:3px;display:block">
+        <div style="font-size:9px;color:#1A5CA0;text-align:center;padding-top:3px;font-weight:700">※シミュレーターの提案カラー</div>
+      </div>
+      <div style="width:200px;flex-shrink:0">
+        <div style="background:#103D70;color:#fff;font-size:10px;font-weight:700;padding:6px 11px;border-radius:4px 4px 0 0;letter-spacing:.07em">🎨 使用カラー仕様</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #ddd;border-top:none">${colorInfo||'<tr><td style="padding:10px;color:#888;text-align:center">塗装データなし</td></tr>'}</table>
+        <div style="margin-top:10px;border:1px solid #ddd;border-radius:4px;overflow:hidden">
+          <div style="background:#F4F7FB;font-size:10px;font-weight:700;padding:6px 11px;border-bottom:1px solid #ddd">📝 担当者コメント</div>
+          <div style="height:80px;padding:8px;font-size:11px;color:#888">自由記入欄</div>
+        </div>
+      </div>
+    </div>
+    <div style="border-top:1px solid #eee;padding:7px 24px;background:#F4F7FB;font-size:9px;color:#888">
+      ※本提案書はカラーシミュレーション用資料です。実際の仕上がり色は塗料メーカーのサンプルで必ずご確認ください。
+    </div>`;
+  document.body.appendChild(div);
+  html2pdf().set({margin:0,filename:'外壁塗装カラー提案書.pdf',image:{type:'jpeg',quality:.96},html2canvas:{scale:2,useCORS:true,allowTaint:true},jsPDF:{unit:'mm',format:'a4',orientation:'landscape'}}).from(div).save().then(()=>{document.body.removeChild(div);toast('✅ PDFを保存しました','ok');}).catch(e=>{document.body.removeChild(div);toast('PDFエラー: '+e.message,'err');});
+}
+
+/* =====================================================
+   SAVE / LOAD WORK
+===================================================== */
+function saveWork() {
+  if (!photoImg) { toast('先に写真をアップロードしてください','err'); return; }
+  try {
+    const data = {
+      v: 1, savedAt: new Date().toISOString(),
+      photo: cPhoto.toDataURL('image/jpeg',0.82),
+      IW, IH,
+      layers: layers.map(l=>({...l,mask:l.mask?Array.from(l.mask):null})),
+      selLayerIdx, layerCounter
+    };
+    localStorage.setItem('wallsim_work', JSON.stringify(data));
+    toast('✅ 作業を保存しました','ok');
+  } catch(e) { toast('保存失敗: '+e.message,'err'); }
+}
+
+function loadWork() {
+  const raw = localStorage.getItem('wallsim_work');
+  if (!raw) { toast('保存された作業がありません','err'); return; }
+  try {
+    const data = JSON.parse(raw);
+    const img = new Image();
+    img.onload = () => {
+      photoImg = img; IW = data.IW; IH = data.IH;
+      layers = data.layers.map(l=>({...l,mask:l.mask?new Uint8Array(l.mask):null}));
+      selLayerIdx = data.selLayerIdx; layerCounter = data.layerCounter;
+      zoom = 'init'; panX = panY = 0;
+      document.getElementById('upload-overlay').style.display = 'none';
+      document.getElementById('zoom-ctrl').style.display = 'flex';
+      document.getElementById('st-size').textContent = `${IW}×${IH}px`;
+      placeCanvases(); buildLayerList(); updateSummary();
+      const d = new Date(data.savedAt);
+      toast(`✅ 作業を再開しました（${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}）`,'ok');
+    };
+    img.src = data.photo;
+  } catch(e) { toast('読み込み失敗: '+e.message,'err'); }
+}
+
+/* =====================================================
+   TOAST
+===================================================== */
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show'+(type?' '+type:'');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+/* =====================================================
+   INIT
+===================================================== */
+buildPalette();
+setTool('wand');
+</script>
+</body>
+</html>
