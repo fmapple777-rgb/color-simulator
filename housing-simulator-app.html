@@ -6,678 +6,314 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="カラーシミュレーター">
-<meta name="mobile-web-app-capable" content="yes">
 <title>住宅カラーシミュレーター</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
-/* ===========================
-   RESET & TOKENS
-=========================== */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg:        #ECF0F5;
-  --surface:   #FFFFFF;
-  --surface2:  #F4F7FB;
-  --border:    #DDE3EC;
-  --border2:   #C5CDD9;
-  --accent:    #1A5CA0;
-  --accent-lt: #E8F1FB;
-  --accent-dk: #103D70;
-  --gold:      #C48C20;
-  --gold-lt:   #FDF3E0;
-  --green:     #1A7A42;
-  --green-lt:  #E6F6ED;
-  --red:       #B83030;
-  --red-lt:    #FCEAEA;
-  --purple:    #6040A8;
-  --text:      #18202E;
-  --text2:     #40506A;
-  --text3:     #7A8898;
-  --sh1:       0 1px 3px rgba(0,0,0,.07);
-  --sh2:       0 4px 14px rgba(0,0,0,.10);
-  --sh3:       0 8px 28px rgba(0,0,0,.13);
-  --r:         12px;
-  --rs:        7px;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ECF0F5;--surface:#fff;--s2:#F4F7FB;
+  --bdr:#DDE3EC;--bdr2:#C5CDD9;
+  --acc:#1A5CA0;--acc-lt:#E8F1FB;--acc-dk:#103D70;
+  --gold:#C48C20;--gold-lt:#FDF3E0;
+  --green:#1A7A42;--green-lt:#E6F6ED;
+  --red:#B83030;--purple:#6040A8;
+  --tx:#18202E;--tx2:#40506A;--tx3:#7A8898;
+  --sh1:0 1px 3px rgba(0,0,0,.07);--sh2:0 4px 14px rgba(0,0,0,.10);
+  --r:12px;--rs:7px;
 }
+html{height:100%;-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--bg);color:var(--tx);min-height:100%;overscroll-behavior:none}
+button,input,textarea{font-family:inherit}
 
-html { height: 100%; -webkit-text-size-adjust: 100%; }
-body {
-  font-family: -apple-system, 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Yu Gothic', BlinkMacSystemFont, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100%;
-  overscroll-behavior: none;
-}
-button, input, textarea, select { font-family: inherit; }
+/* TOPBAR */
+.topbar{background:var(--acc-dk);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.22);position:sticky;top:0;z-index:200;min-height:52px}
+.tb-brand{display:flex;align-items:center;gap:10px}
+.tb-icon{width:34px;height:34px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.tb-title{font-size:15px;font-weight:700;letter-spacing:.03em}
+.tb-sub{font-size:10px;opacity:.6;letter-spacing:.1em;margin-top:1px}
+.api-btn{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:background .2s}
+.api-btn:hover{background:rgba(255,255,255,.22)}
+.api-btn.on{background:rgba(30,160,80,.35);border-color:rgba(80,220,120,.4)}
+.api-dot{width:7px;height:7px;border-radius:50%;background:#aaa}
+.api-dot.on{background:#4DE880}
 
-/* ===========================
-   TOPBAR
-=========================== */
-.topbar {
-  background: var(--accent-dk);
-  color: #fff;
-  padding: 10px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 2px 8px rgba(0,0,0,.22);
-  position: sticky;
-  top: 0;
-  z-index: 200;
-  min-height: 52px;
-}
-.tb-brand { display:flex; align-items:center; gap:10px; }
-.tb-icon {
-  width:34px; height:34px; background:var(--gold);
-  border-radius:8px; display:flex; align-items:center;
-  justify-content:center; font-size:19px; flex-shrink:0;
-}
-.tb-title  { font-size:15px; font-weight:700; letter-spacing:.03em; }
-.tb-sub    { font-size:10px; opacity:.6; letter-spacing:.1em; margin-top:1px; }
-.tb-right  { display:flex; align-items:center; gap:8px; }
-.tb-api-btn {
-  display:flex; align-items:center; gap:5px;
-  background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.22);
-  color:#fff; border-radius:6px; padding:6px 12px;
-  font-size:11px; font-weight:600; cursor:pointer;
-  transition:background .2s;
-}
-.tb-api-btn:hover { background:rgba(255,255,255,.22); }
-.tb-api-btn.connected { background:rgba(30,160,80,.35); border-color:rgba(80,220,120,.4); }
-.tb-api-dot { width:7px; height:7px; border-radius:50%; background:#aaa; }
-.tb-api-dot.on { background:#4DE880; }
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(10,20,40,.65);display:flex;align-items:center;justify-content:center;z-index:500;padding:20px;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-ov.open{opacity:1;pointer-events:all}
+.modal-box{background:#fff;border-radius:var(--r);box-shadow:var(--sh2);width:100%;max-width:460px;padding:26px;transform:translateY(14px);transition:transform .25s}
+.modal-ov.open .modal-box{transform:translateY(0)}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:6px}
+.modal-desc{font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:16px}
+.modal-desc a{color:var(--acc)}
+.modal-lbl{font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px;display:block}
+.modal-inp-wrap{position:relative;margin-bottom:12px}
+.modal-inp-wrap input{width:100%;border:1.5px solid var(--bdr2);border-radius:var(--rs);padding:10px 38px 10px 12px;font-size:13px;outline:none;background:var(--s2);transition:border-color .2s}
+.modal-inp-wrap input:focus{border-color:var(--acc);background:#fff}
+.modal-eye{position:absolute;right:9px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;color:var(--tx3);padding:4px}
+.modal-info{background:var(--acc-lt);border:1px solid #BCD0EE;border-radius:var(--rs);padding:10px 12px;font-size:11px;color:#183060;line-height:1.7;margin-bottom:14px}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.modal-cancel{background:transparent;border:1px solid var(--bdr2);border-radius:var(--rs);padding:9px 16px;font-size:12px;cursor:pointer;color:var(--tx2)}
+.modal-save{background:var(--acc);color:#fff;border:none;border-radius:var(--rs);padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer}
 
-/* ===========================
-   API KEY MODAL
-=========================== */
-.modal-overlay {
-  position:fixed; inset:0; background:rgba(10,20,40,.65);
-  display:flex; align-items:center; justify-content:center;
-  z-index:500; padding:20px;
-  backdrop-filter:blur(3px);
-  opacity:0; pointer-events:none;
-  transition:opacity .25s;
-}
-.modal-overlay.open { opacity:1; pointer-events:all; }
-.modal-box {
-  background:#fff; border-radius:var(--r);
-  box-shadow:var(--sh3);
-  width:100%; max-width:480px;
-  padding:28px 28px 24px;
-  transform:translateY(16px);
-  transition:transform .25s;
-}
-.modal-overlay.open .modal-box { transform:translateY(0); }
-.modal-title { font-size:17px; font-weight:700; margin-bottom:6px; }
-.modal-desc  { font-size:12px; color:var(--text2); line-height:1.7; margin-bottom:18px; }
-.modal-desc a { color:var(--accent); }
-.modal-label { font-size:11px; font-weight:700; color:var(--text2); margin-bottom:5px; display:block; }
-.modal-input-wrap { position:relative; margin-bottom:14px; }
-.modal-input-wrap input {
-  width:100%; border:1.5px solid var(--border2); border-radius:var(--rs);
-  padding:10px 40px 10px 12px; font-size:13px; outline:none;
-  transition:border-color .2s;
-  background:var(--surface2);
-}
-.modal-input-wrap input:focus { border-color:var(--accent); background:#fff; }
-.modal-eye {
-  position:absolute; right:10px; top:50%; transform:translateY(-50%);
-  background:none; border:none; cursor:pointer; font-size:16px; color:var(--text3);
-  padding:4px;
-}
-.modal-info-box {
-  background:var(--accent-lt); border:1px solid #BCD0EE;
-  border-radius:var(--rs); padding:10px 12px;
-  font-size:11px; color:#183060; line-height:1.7; margin-bottom:16px;
-}
-.modal-btns { display:flex; gap:8px; justify-content:flex-end; }
-.modal-btn-cancel {
-  background:transparent; border:1px solid var(--border2);
-  border-radius:var(--rs); padding:9px 18px; font-size:12px;
-  cursor:pointer; color:var(--text2); transition:background .15s;
-}
-.modal-btn-cancel:hover { background:var(--surface2); }
-.modal-btn-save {
-  background:var(--accent); color:#fff; border:none;
-  border-radius:var(--rs); padding:9px 20px; font-size:12px;
-  font-weight:700; cursor:pointer; transition:background .15s;
-}
-.modal-btn-save:hover { background:var(--accent-dk); }
+/* LAYOUT */
+.app{display:flex;align-items:flex-start;max-width:1560px;margin:0 auto}
 
-/* ===========================
-   MAIN LAYOUT
-=========================== */
-.app-wrap {
-  display:flex; gap:0;
-  max-width:1560px; margin:0 auto;
-  padding:0;
-  align-items:flex-start;
-}
+/* LEFT PANEL */
+.lp{width:264px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--bdr);min-height:calc(100vh - 52px);display:flex;flex-direction:column;overflow-y:auto;position:sticky;top:52px;height:calc(100vh - 52px)}
+.lp::-webkit-scrollbar{width:4px}
+.lp::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+.sec{padding:14px 14px;border-bottom:1px solid var(--bdr)}
+.sec-ttl{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:11px}
+.sn{width:18px;height:18px;background:var(--acc);color:#fff;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
-/* ===========================
-   LEFT PANEL (sidebar)
-=========================== */
-.left-panel {
-  width:270px;
-  flex-shrink:0;
-  background:var(--surface);
-  border-right:1px solid var(--border);
-  min-height:calc(100vh - 52px);
-  display:flex;
-  flex-direction:column;
-  overflow-y:auto;
-  overflow-x:hidden;
-  position:sticky;
-  top:52px;
-  height:calc(100vh - 52px);
-}
-.left-panel::-webkit-scrollbar { width:4px; }
-.left-panel::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+/* UPLOAD */
+.upload-lbl{display:block;border:2px dashed var(--bdr2);border-radius:var(--rs);padding:18px 10px;text-align:center;background:var(--s2);cursor:pointer;transition:border-color .2s,background .2s;-webkit-tap-highlight-color:transparent}
+.upload-lbl:hover,.upload-lbl.over{border-color:var(--acc);background:var(--acc-lt)}
+.upload-lbl input[type=file]{position:absolute;width:1px;height:1px;opacity:0;transform:scale(0)}
+.uz-icon{font-size:26px;margin-bottom:5px}
+.uz-txt{font-size:11px;color:var(--tx2);margin-bottom:8px}
+.uz-btn{display:inline-flex;align-items:center;gap:6px;background:var(--acc);color:#fff;border-radius:var(--rs);padding:10px 20px;font-size:13px;font-weight:700;pointer-events:none;box-shadow:0 2px 7px rgba(26,92,160,.28)}
+.uz-sub{font-size:9px;color:var(--tx3);margin-top:8px;pointer-events:none}
+.upload-name{font-size:10px;color:var(--tx3);margin-top:6px;text-align:center;word-break:break-all;display:none}
 
-.panel-section {
-  padding:16px;
-  border-bottom:1px solid var(--border);
-}
-.section-title {
-  display:flex; align-items:center; gap:7px;
-  font-size:10px; font-weight:700; color:var(--text3);
-  letter-spacing:.1em; text-transform:uppercase;
-  margin-bottom:12px;
-}
-.section-n {
-  width:18px; height:18px; background:var(--accent); color:#fff;
-  border-radius:50%; font-size:10px; font-weight:700;
-  display:flex; align-items:center; justify-content:center; flex-shrink:0;
-}
+/* PALETTE */
+.pal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:9px}
+.p-chip{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.p-sw{width:100%;aspect-ratio:1;border-radius:6px;border:2.5px solid transparent;box-shadow:0 1px 4px rgba(0,0,0,.13);transition:transform .14s,border-color .14s}
+.p-sw:hover{transform:scale(1.09)}
+.p-sw.sel{border-color:var(--acc);transform:scale(1.1);box-shadow:0 0 0 3px rgba(26,92,160,.18)}
+.p-nm{font-size:9px;color:var(--tx3);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.cust-row{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--bdr);border-radius:var(--rs);padding:7px 10px;margin-bottom:8px}
+.cust-row label{font-size:10px;color:var(--tx2);font-weight:600;white-space:nowrap}
+.cust-row input[type=color]{width:28px;height:24px;border:none;background:none;cursor:pointer;padding:0;border-radius:3px}
+.sel-disp{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bdr);border-radius:var(--rs);padding:9px 10px}
+.sel-sw{width:36px;height:36px;border-radius:6px;border:1px solid rgba(0,0,0,.09);box-shadow:var(--sh1);flex-shrink:0;transition:background .2s}
+.sel-nm{font-size:13px;font-weight:700}
+.sel-cd{font-size:11px;color:var(--tx2);font-family:monospace;margin-top:2px}
 
-/* Upload zone */
-/* ===== UPLOAD ZONE — iPad Safari 完全対応版 =====
-   input[type=file] を label で直接ラップする方式。
-   display:none や .click() は使わない。
-   これが全ブラウザ・全OS で最も確実な方法。
-====================================================*/
-.upload-label {
-  display:block;
-  border:2px dashed var(--border2); border-radius:var(--rs);
-  padding:20px 12px; text-align:center;
-  background:var(--surface2);
-  transition:border-color .2s, background .2s;
-  cursor:pointer;
-  -webkit-tap-highlight-color:transparent;
-}
-.upload-label:hover,
-.upload-label.over {
-  border-color:var(--accent); background:var(--accent-lt);
-}
-/* input 自体を label の中に入れて見せる */
-.upload-label input[type=file] {
-  /* サイズ0にせず、1pxでも表示領域を確保するのがiPadでの鉄則 */
-  position:absolute;
-  width:1px; height:1px;
-  opacity:0;
-  overflow:hidden;
-  /* clip ではなく transform で視覚的に隠す */
-  transform:scale(0);
-}
-.uz-icon { font-size:28px; margin-bottom:6px; pointer-events:none; }
-.uz-main-btn {
-  display:inline-flex; align-items:center; gap:7px;
-  background:var(--accent); color:#fff;
-  border-radius:var(--rs);
-  padding:12px 24px; font-size:14px; font-weight:700;
-  margin:8px 0 6px;
-  box-shadow:0 2px 8px rgba(26,92,160,.3);
-  pointer-events:none; /* label がクリックを受ける */
-  letter-spacing:.03em;
-}
-.uz-sub { font-size:10px; color:var(--text3); pointer-events:none; }
-.upload-name {
-  font-size:10px; color:var(--text3); margin-top:6px;
-  text-align:center; word-break:break-all; display:none;
-}
+/* LAYER LIST */
+.layer-list{display:flex;flex-direction:column;gap:5px}
+.layer-item{display:flex;align-items:center;gap:8px;background:var(--s2);border:1.5px solid var(--bdr);border-radius:var(--rs);padding:8px 10px;cursor:pointer;transition:all .14s;-webkit-tap-highlight-color:transparent}
+.layer-item:hover{border-color:var(--acc);background:var(--acc-lt)}
+.layer-item.active{border-color:var(--acc);background:var(--acc-lt)}
+.layer-item.locked{cursor:default;opacity:.5}
+.layer-item.locked:hover{border-color:var(--bdr);background:var(--s2)}
+.li-color{width:20px;height:20px;border-radius:4px;border:1.5px solid rgba(0,0,0,.12);flex-shrink:0;transition:background .2s}
+.li-name{flex:1;font-size:12px;font-weight:600;color:var(--tx2)}
+.li-orig{font-size:9px;color:var(--tx3);font-family:monospace}
+.li-lock{font-size:11px}
+.li-actions{display:flex;gap:4px;margin-left:auto}
+.li-act-btn{background:transparent;border:1px solid var(--bdr);border-radius:4px;padding:3px 6px;font-size:10px;cursor:pointer;color:var(--tx3);transition:all .14s}
+.li-act-btn:hover{border-color:var(--acc);color:var(--acc)}
 
-/* Palette */
-.palette-grid {
-  display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:10px;
-}
-.p-chip { display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; }
-.p-sw {
-  width:100%; aspect-ratio:1; border-radius:6px;
-  border:2.5px solid transparent; box-shadow:0 1px 4px rgba(0,0,0,.13);
-  transition:transform .14s, border-color .14s;
-}
-.p-sw:hover  { transform:scale(1.09); }
-.p-sw.sel    { border-color:var(--accent); transform:scale(1.1); box-shadow:0 0 0 3px rgba(26,92,160,.18); }
-.p-nm        { font-size:9px; color:var(--text3); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; }
+/* BRUSH SECTION */
+.tool-row{display:flex;gap:5px;margin-bottom:8px}
+.tool-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:var(--s2);border:1.5px solid var(--bdr);border-radius:var(--rs);padding:7px 4px;font-size:11px;cursor:pointer;color:var(--tx2);transition:all .14s;white-space:nowrap}
+.tool-btn:hover{border-color:var(--acc);color:var(--acc)}
+.tool-btn.active{background:var(--acc);color:#fff;border-color:var(--acc)}
+.sl-row{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.sl-row label{font-size:10px;color:var(--tx2);white-space:nowrap;min-width:52px}
+.sl-row input[type=range]{flex:1;accent-color:var(--acc)}
+.sl-row span{font-size:10px;color:var(--tx3);min-width:30px;text-align:right}
+.info-pill{border-radius:var(--rs);padding:8px 10px;font-size:10px;line-height:1.7;border:1px solid}
+.info-pill.blue{background:var(--acc-lt);border-color:#BDD0EE;color:#183060}
+.info-pill.gold{background:var(--gold-lt);border-color:#EDD890;color:#604A08}
 
-.cust-row {
-  display:flex; align-items:center; gap:7px;
-  background:var(--surface2); border:1px solid var(--border);
-  border-radius:var(--rs); padding:7px 10px; margin-bottom:9px;
-}
-.cust-row label { font-size:10px; color:var(--text2); font-weight:600; white-space:nowrap; }
-.cust-row input[type=color] { width:30px; height:24px; border:none; background:none; cursor:pointer; padding:0; border-radius:3px; }
+/* RIGHT COL */
+.rc{flex:1;min-width:0;display:flex;flex-direction:column}
 
-.sel-disp {
-  display:flex; align-items:center; gap:9px;
-  background:var(--surface2); border:1px solid var(--border);
-  border-radius:var(--rs); padding:9px 11px;
-}
-.sel-sw  { width:38px; height:38px; border-radius:6px; border:1px solid rgba(0,0,0,.09); box-shadow:var(--sh1); flex-shrink:0; transition:background .2s; }
-.sel-nm  { font-size:13px; font-weight:700; }
-.sel-cd  { font-size:11px; color:var(--text2); font-family:monospace; margin-top:2px; }
+/* STAGE TOOLBAR */
+.stage-bar{display:flex;align-items:center;gap:6px;padding:9px 14px;border-bottom:1px solid var(--bdr);background:var(--surface);flex-wrap:wrap}
+.bar-lbl{font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin-right:4px}
+.ai-btn{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#7040C0,#1A5CA0);color:#fff;border:none;border-radius:var(--rs);padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.04em;box-shadow:0 2px 8px rgba(112,64,192,.3);transition:filter .15s,transform .1s;white-space:nowrap}
+.ai-btn:hover{filter:brightness(1.1)}
+.ai-btn:active{transform:scale(.97)}
+.ai-btn:disabled{opacity:.45;cursor:not-allowed}
+.icon-btn{background:var(--s2);border:1px solid var(--bdr);border-radius:var(--rs);padding:6px 10px;font-size:11px;cursor:pointer;color:var(--tx2);transition:all .14s;white-space:nowrap}
+.icon-btn:hover{border-color:var(--acc);color:var(--acc)}
+.icon-btn.del:hover{border-color:var(--red);color:var(--red)}
+.spacer{flex:1}
 
-/* Tool buttons */
-.tool-row { display:flex; gap:5px; margin-bottom:9px; }
-.tool-btn {
-  flex:1; display:flex; align-items:center; justify-content:center; gap:4px;
-  background:var(--surface2); border:1.5px solid var(--border);
-  border-radius:var(--rs); padding:7px 4px;
-  font-size:11px; cursor:pointer; color:var(--text2);
-  transition:all .15s; white-space:nowrap;
-}
-.tool-btn:hover  { border-color:var(--accent); color:var(--accent); }
-.tool-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+/* AI RIBBON */
+.ai-ribbon{display:none;align-items:center;gap:8px;padding:7px 14px;background:linear-gradient(90deg,#EEE8F8,#E8F0FB);border-bottom:1px solid #D0C0EC;font-size:11px;color:#5030A0}
+.ai-ribbon.show{display:flex}
+.spin{width:13px;height:13px;border:2px solid rgba(80,48,160,.18);border-top-color:#5030A0;border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
 
-.slider-row {
-  display:flex; align-items:center; gap:7px; margin-bottom:7px;
-}
-.slider-row label { font-size:10px; color:var(--text2); white-space:nowrap; min-width:56px; }
-.slider-row input[type=range] { flex:1; accent-color:var(--accent); height:4px; }
-.slider-row span  { font-size:10px; color:var(--text3); min-width:32px; text-align:right; }
+/* CANVAS AREA */
+.sim-body{padding:12px 14px 14px;background:var(--surface)}
+.sim-outer{position:relative;background:#1C2533;border-radius:var(--rs);overflow:hidden;line-height:0;min-height:160px;display:flex;align-items:center;justify-content:center;box-shadow:var(--sh2)}
+/* Canvas stack */
+#c-photo{display:block;max-width:100%;position:relative;z-index:1}
+.overlay-canvas{position:absolute;top:0;left:0;display:block;max-width:100%;z-index:2;pointer-events:none}
+#c-brush{position:absolute;top:0;left:0;display:block;max-width:100%;z-index:3;cursor:crosshair;touch-action:none}
+.sim-ph{text-align:center;color:rgba(255,255,255,.32);padding:50px 20px;pointer-events:none;position:relative;z-index:1}
+.sim-ph-icon{font-size:36px;margin-bottom:10px}
+.sim-ph-txt{font-size:12px;line-height:1.9}
+.canvas-hint{display:none;font-size:10px;color:var(--tx3);margin-top:6px;text-align:right}
+.lo{position:absolute;inset:0;background:rgba(16,28,52,.75);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#fff;font-size:12px;border-radius:var(--rs);z-index:50;text-align:center;padding:20px}
+.lo.show{display:flex}
+.lo-spin{width:36px;height:36px;border:3px solid rgba(255,255,255,.18);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite}
 
-/* Region list */
-.region-list { display:flex; flex-direction:column; gap:5px; }
-.reg-item {
-  display:flex; align-items:center; gap:7px;
-  background:var(--surface2); border:1px solid var(--border);
-  border-radius:var(--rs); padding:7px 9px; cursor:pointer;
-  font-size:11px; transition:all .14s;
-}
-.reg-item:hover  { border-color:var(--accent); background:var(--accent-lt); }
-.reg-item.active { border-color:var(--accent); background:var(--accent-lt); font-weight:700; color:var(--accent); }
-.reg-dot  { width:11px; height:11px; border-radius:50%; border:1.5px solid rgba(0,0,0,.1); flex-shrink:0; }
-.reg-lbl  { flex:1; color:var(--text2); }
-.reg-code { font-family:monospace; font-size:10px; color:var(--text3); }
+/* SUMMARY */
+.sum-bar{padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-height:40px}
+.sum-lbl{font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.08em;white-space:nowrap}
+.sum-chip{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--bdr);border-radius:5px;padding:3px 8px;font-size:10px}
+.sum-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(0,0,0,.1)}
 
-.info-pill {
-  border-radius:var(--rs); padding:8px 11px;
-  font-size:11px; line-height:1.7; border:1px solid;
-}
-.info-pill.blue   { background:var(--accent-lt); border-color:#BDD0EE; color:#183060; }
-.info-pill.gold   { background:var(--gold-lt);   border-color:#EDD890; color:#604A08; }
-.info-pill.green  { background:var(--green-lt);  border-color:#90D8B0; color:#0E3E22; }
+/* REPORT */
+.rpt-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--bdr)}
+.rh-left{display:flex;align-items:center;gap:7px}
+.rh-icon{width:22px;height:22px;background:var(--acc-lt);color:var(--acc);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.rh-title{font-size:11px;font-weight:700;color:var(--tx2);letter-spacing:.08em;text-transform:uppercase}
+.pdf-btn{display:inline-flex;align-items:center;gap:6px;background:var(--acc);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 2px 7px rgba(26,92,160,.28);transition:background .15s,transform .1s}
+.pdf-btn:hover{background:var(--acc-dk)}
+.pdf-btn:active{transform:scale(.97)}
+.a4-wrap{overflow-x:auto;padding:14px;background:var(--bg)}
+.a4-wrap::-webkit-scrollbar{height:5px}
+.a4-wrap::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
 
-/* ===========================
-   RIGHT AREA
-=========================== */
-.right-col {
-  flex:1; min-width:0;
-  display:flex; flex-direction:column;
-  gap:0;
-}
+/* A4 SHEET */
+#report-sheet{width:1040px;min-height:680px;background:#fff;border:1px solid var(--bdr2);border-radius:4px;box-shadow:var(--sh2);font-family:-apple-system,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;overflow:hidden}
+.rs-head{background:var(--acc-dk);color:#fff;padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.rs-main{font-size:14px;font-weight:700;letter-spacing:.05em}
+.rs-sub{font-size:10px;opacity:.6;margin-top:2px;letter-spacing:.1em}
+.rs-logo{text-align:right;font-size:10px;opacity:.6;line-height:1.6}
+.gold-bar{height:3px;background:linear-gradient(90deg,var(--gold),#F0C060,var(--gold))}
+.rs-info{display:flex;align-items:center;padding:8px 24px;background:var(--s2);border-bottom:1px solid var(--bdr)}
+.rs-fld{display:flex;align-items:center;gap:6px;padding-right:16px;margin-right:16px;border-right:1px solid var(--bdr2)}
+.rs-fld:last-child{border-right:none}
+.rs-fld label{font-size:10px;color:var(--tx2);font-weight:700;white-space:nowrap;letter-spacing:.04em}
+.rs-fld input{border:none;border-bottom:1.5px solid var(--bdr2);background:transparent;font-size:12px;font-family:inherit;color:var(--tx);padding:1px 3px;outline:none;width:120px;transition:border-color .2s}
+.rs-fld input:focus{border-color:var(--acc)}
+.rs-body{display:flex;padding:14px 24px}
+.ba-col{flex:1;display:flex;flex-direction:column;gap:5px}
+.ba-gap{width:14px;flex-shrink:0}
+.ba-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;padding:3px 9px;border-radius:3px;text-align:center}
+.ba-lbl.before{background:#F0F2F6;color:var(--tx2);border:1px solid var(--bdr)}
+.ba-lbl.after{background:var(--acc-lt);color:var(--acc);border:1px solid #BCD0EE}
+.ba-box{width:100%;aspect-ratio:4/3;border:1px solid var(--bdr2);border-radius:3px;overflow:hidden;background:#CDD3DC;position:relative}
+.ba-box canvas{width:100%;height:100%;object-fit:cover;display:block}
+.ba-note{font-size:9px;text-align:center;padding-top:3px;color:var(--tx3)}
+.rs-info-col{width:210px;flex-shrink:0;margin-left:14px;display:flex;flex-direction:column;gap:9px}
+.spec-box{border:1px solid var(--bdr);border-radius:var(--rs);overflow:hidden}
+.spec-head{background:var(--acc-dk);color:#fff;font-size:10px;font-weight:700;padding:6px 11px;letter-spacing:.07em}
+.spec-row{display:flex;align-items:center;gap:6px;padding:5px 9px;border-bottom:1px solid var(--bdr);font-size:11px}
+.spec-row:last-child{border-bottom:none}
+.spec-dot{width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(0,0,0,.1);flex-shrink:0}
+.spec-part{color:var(--tx2);font-weight:600;flex:1}
+.spec-code{font-family:monospace;font-size:10px;color:var(--tx3)}
+.notes-box{border:1px solid var(--bdr);border-radius:var(--rs);overflow:hidden}
+.notes-head{background:var(--s2);color:var(--tx2);font-size:10px;font-weight:700;padding:6px 11px;border-bottom:1px solid var(--bdr);letter-spacing:.05em}
+.notes-box textarea{width:100%;height:85px;border:none;resize:none;font-size:11px;font-family:inherit;color:var(--tx);padding:7px 10px;outline:none;line-height:1.7;background:#fff}
+.rs-footer{border-top:1px solid var(--bdr);padding:7px 24px;display:flex;justify-content:space-between;align-items:center;background:var(--s2)}
+.rs-fnote{font-size:9px;color:var(--tx3);line-height:1.5}
+.rs-stamp{width:44px;height:44px;border-radius:50%;border:2px solid var(--bdr2);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--tx3);text-align:center;line-height:1.3}
 
-/* Stage area */
-.sim-card { border-bottom:1px solid var(--border); }
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--acc-dk);color:#fff;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;opacity:0;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.22);transition:opacity .24s,transform .24s;white-space:nowrap;z-index:9999;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red)}
+.toast.ok{background:var(--green)}
 
-.stage-bar {
-  display:flex; align-items:center; gap:8px;
-  padding:10px 16px; border-bottom:1px solid var(--border);
-  background:var(--surface); flex-wrap:wrap; gap:6px;
+/* RESPONSIVE */
+@media(max-width:900px){
+  .app{flex-direction:column}
+  .lp{width:100%;min-height:auto;height:auto;position:static;border-right:none;border-bottom:1px solid var(--bdr)}
+  .sec{flex:1;min-width:220px}
 }
-.bar-label { font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.08em; text-transform:uppercase; margin-right:4px; }
-
-.ai-btn {
-  display:inline-flex; align-items:center; gap:6px;
-  background:linear-gradient(135deg,#7040C0,#1A5CA0);
-  color:#fff; border:none; border-radius:var(--rs);
-  padding:7px 14px; font-size:11px; font-weight:700;
-  cursor:pointer; letter-spacing:.04em;
-  box-shadow:0 2px 8px rgba(112,64,192,.3);
-  transition:filter .15s, transform .1s;
-  white-space:nowrap;
+@media(max-width:600px){
+  .topbar{padding:8px 12px}
+  .tb-title{font-size:13px}
+  .tb-sub{display:none}
+  .stage-bar{padding:7px 10px}
+  .ai-btn{font-size:10px;padding:6px 10px}
 }
-.ai-btn:hover    { filter:brightness(1.1); }
-.ai-btn:active   { transform:scale(.97); }
-.ai-btn:disabled { opacity:.45; cursor:not-allowed; }
-
-.icon-btn {
-  background:var(--surface2); border:1px solid var(--border);
-  border-radius:var(--rs); padding:6px 11px;
-  font-size:11px; cursor:pointer; color:var(--text2);
-  transition:all .14s; white-space:nowrap;
-}
-.icon-btn:hover        { border-color:var(--accent); color:var(--accent); }
-.icon-btn.del:hover    { border-color:var(--red);    color:var(--red);    }
-.spacer { flex:1; }
-
-/* AI status ribbon */
-.ai-ribbon {
-  display:none; align-items:center; gap:8px;
-  padding:7px 16px; background:linear-gradient(90deg,#EEE8F8,#E8F0FB);
-  border-bottom:1px solid #D0C0EC; font-size:11px; color:#5030A0;
-}
-.ai-ribbon.show { display:flex; }
-.spin {
-  width:13px; height:13px;
-  border:2px solid rgba(80,48,160,.18);
-  border-top-color:#5030A0; border-radius:50%;
-  animation:sp .7s linear infinite; flex-shrink:0;
-}
-@keyframes sp { to { transform:rotate(360deg); } }
-
-/* Canvas wrap */
-.sim-body {
-  padding:14px 16px 16px;
-  background:var(--surface);
-}
-.sim-outer {
-  position:relative;
-  background:#1C2533;
-  border-radius:var(--rs);
-  overflow:hidden;
-  line-height:0;
-  min-height:180px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  box-shadow:var(--sh2);
-}
-.sim-outer canvas { display:block; max-width:100%; touch-action:none; }
-#base-canvas { position:absolute; top:0; left:0; }
-#paint-canvas { position:relative; z-index:2; cursor:crosshair; }
-
-.sim-ph {
-  text-align:center; color:rgba(255,255,255,.32);
-  padding:50px 24px; pointer-events:none; position:relative; z-index:1;
-}
-.sim-ph-icon { font-size:38px; margin-bottom:10px; }
-.sim-ph-txt  { font-size:12px; line-height:1.9; }
-
-.canvas-hint {
-  display:none; font-size:10px; color:var(--text3);
-  margin-top:6px; text-align:right; padding-right:2px;
-}
-
-/* Loading overlay */
-.lo {
-  position:absolute; inset:0;
-  background:rgba(16,28,52,.72);
-  display:none; flex-direction:column;
-  align-items:center; justify-content:center;
-  gap:12px; color:#fff; font-size:12px;
-  border-radius:var(--rs); z-index:50;
-}
-.lo.show { display:flex; }
-.lo-spin {
-  width:34px; height:34px;
-  border:3px solid rgba(255,255,255,.18);
-  border-top-color:#fff; border-radius:50%;
-  animation:sp .8s linear infinite;
-}
-
-/* Color summary */
-.summary-bar {
-  padding:10px 16px; background:var(--surface);
-  border-bottom:1px solid var(--border);
-  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-  min-height:42px;
-}
-.sum-label { font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.08em; white-space:nowrap; }
-.sum-chip {
-  display:flex; align-items:center; gap:5px;
-  background:var(--surface2); border:1px solid var(--border);
-  border-radius:5px; padding:3px 9px; font-size:10px;
-}
-.sum-dot { width:10px; height:10px; border-radius:50%; border:1px solid rgba(0,0,0,.1); }
-
-/* ===========================
-   REPORT SECTION
-=========================== */
-.report-header-bar {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:11px 16px; background:var(--surface);
-  border-bottom:1px solid var(--border);
-}
-.rh-left { display:flex; align-items:center; gap:7px; }
-.rh-icon {
-  width:22px; height:22px; background:var(--accent-lt); color:var(--accent);
-  border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:12px;
-}
-.rh-title { font-size:11px; font-weight:700; color:var(--text2); letter-spacing:.08em; text-transform:uppercase; }
-
-.pdf-btn {
-  display:inline-flex; align-items:center; gap:6px;
-  background:var(--accent); color:#fff; border:none;
-  border-radius:var(--rs); padding:8px 16px;
-  font-size:11px; font-weight:700; cursor:pointer;
-  box-shadow:0 2px 7px rgba(26,92,160,.28); letter-spacing:.03em;
-  transition:background .15s, transform .1s;
-}
-.pdf-btn:hover  { background:var(--accent-dk); }
-.pdf-btn:active { transform:scale(.97); }
-
-/* A4 wrapper */
-.a4-wrap { overflow-x:auto; padding:14px 16px; background:var(--bg); }
-.a4-wrap::-webkit-scrollbar { height:5px; }
-.a4-wrap::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
-
-/* ===========================
-   REPORT SHEET (A4 landscape)
-=========================== */
-#report-sheet {
-  width:1040px; min-height:690px;
-  background:#fff; border:1px solid var(--border2);
-  border-radius:4px; box-shadow:var(--sh2);
-  font-family:-apple-system,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;
-  overflow:hidden;
-}
-.rs-head {
-  background:var(--accent-dk); color:#fff;
-  padding:12px 24px; display:flex; align-items:center; justify-content:space-between;
-}
-.rs-main-title { font-size:14px; font-weight:700; letter-spacing:.05em; }
-.rs-sub-title  { font-size:10px; opacity:.6; margin-top:2px; letter-spacing:.1em; }
-.rs-logo       { text-align:right; font-size:10px; opacity:.6; line-height:1.6; }
-.gold-bar      { height:3px; background:linear-gradient(90deg,var(--gold),#F0C060,var(--gold)); }
-
-.rs-info-bar {
-  display:flex; align-items:center;
-  padding:8px 24px; background:var(--surface2); border-bottom:1px solid var(--border);
-}
-.rs-field { display:flex; align-items:center; gap:6px; padding-right:18px; margin-right:18px; border-right:1px solid var(--border2); }
-.rs-field:last-child { border-right:none; }
-.rs-field label { font-size:10px; color:var(--text2); font-weight:700; white-space:nowrap; letter-spacing:.04em; }
-.rs-field input {
-  border:none; border-bottom:1.5px solid var(--border2);
-  background:transparent; font-size:12px; font-family:inherit;
-  color:var(--text); padding:1px 3px; outline:none; width:125px;
-  transition:border-color .2s;
-}
-.rs-field input:focus { border-color:var(--accent); }
-
-.rs-body { display:flex; gap:0; padding:14px 24px; }
-.ba-col  { flex:1; display:flex; flex-direction:column; gap:5px; }
-.ba-gap  { width:16px; flex-shrink:0; }
-.ba-lbl  { font-size:10px; font-weight:700; letter-spacing:.1em; padding:3px 9px; border-radius:3px; text-align:center; }
-.ba-lbl.before { background:#F0F2F6; color:var(--text2); border:1px solid var(--border); }
-.ba-lbl.after  { background:var(--accent-lt); color:var(--accent); border:1px solid #BCD0EE; }
-.ba-box  {
-  width:100%; aspect-ratio:4/3;
-  border:1px solid var(--border2); border-radius:3px;
-  overflow:hidden; background:#CDD3DC; position:relative;
-}
-.ba-box canvas { width:100%; height:100%; object-fit:cover; display:block; }
-.ba-note { font-size:9px; text-align:center; padding-top:3px; color:var(--text3); }
-
-.rs-info-col { width:215px; flex-shrink:0; margin-left:16px; display:flex; flex-direction:column; gap:9px; }
-.spec-box { border:1px solid var(--border); border-radius:var(--rs); overflow:hidden; }
-.spec-head { background:var(--accent-dk); color:#fff; font-size:10px; font-weight:700; padding:6px 11px; letter-spacing:.07em; }
-.spec-row  { display:flex; align-items:center; gap:6px; padding:5px 9px; border-bottom:1px solid var(--border); font-size:11px; }
-.spec-row:last-child { border-bottom:none; }
-.spec-dot  { width:13px; height:13px; border-radius:50%; border:1.5px solid rgba(0,0,0,.1); flex-shrink:0; }
-.spec-part { color:var(--text2); font-weight:600; flex:1; }
-.spec-code { font-family:monospace; font-size:10px; color:var(--text3); }
-
-.notes-box { border:1px solid var(--border); border-radius:var(--rs); overflow:hidden; }
-.notes-head { background:var(--surface2); color:var(--text2); font-size:10px; font-weight:700; padding:6px 11px; border-bottom:1px solid var(--border); letter-spacing:.05em; }
-.notes-box textarea { width:100%; height:88px; border:none; resize:none; font-size:11px; font-family:inherit; color:var(--text); padding:7px 10px; outline:none; line-height:1.7; background:#fff; }
-
-.rs-footer {
-  border-top:1px solid var(--border); padding:7px 24px;
-  display:flex; justify-content:space-between; align-items:center;
-  background:var(--surface2);
-}
-.rs-footer-note { font-size:9px; color:var(--text3); line-height:1.5; }
-.rs-stamp { width:46px; height:46px; border-radius:50%; border:2px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:8px; color:var(--text3); text-align:center; line-height:1.3; }
-
-/* ===========================
-   TOAST
-=========================== */
-.toast {
-  position:fixed; bottom:24px; left:50%;
-  transform:translateX(-50%) translateY(12px);
-  background:var(--accent-dk); color:#fff;
-  font-size:12px; font-weight:600; padding:10px 22px;
-  border-radius:22px; opacity:0; pointer-events:none;
-  box-shadow:0 4px 16px rgba(0,0,0,.22);
-  transition:opacity .24s, transform .24s;
-  white-space:nowrap; z-index:9999; max-width:90vw; text-align:center;
-}
-.toast.show  { opacity:1; transform:translateX(-50%) translateY(0); }
-.toast.err   { background:var(--red); }
-.toast.ok    { background:var(--green); }
-
-/* ===========================
-   MOBILE / TABLET RESPONSIVE
-=========================== */
-@media (max-width: 900px) {
-  .app-wrap { flex-direction:column; }
-  .left-panel {
-    width:100%; min-height:auto; height:auto;
-    position:static; border-right:none; border-bottom:1px solid var(--border);
-    flex-direction:row; flex-wrap:wrap; overflow-x:hidden; overflow-y:visible;
-  }
-  .panel-section { flex:1; min-width:240px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); }
-  .panel-section:last-child { border-right:none; }
-}
-@media (max-width: 600px) {
-  .topbar { padding:8px 14px; }
-  .tb-title { font-size:14px; }
-  .tb-sub   { display:none; }
-  .left-panel { flex-direction:column; }
-  .panel-section { min-width:auto; width:100%; }
-  .stage-bar { padding:8px 12px; }
-  .ai-btn    { font-size:10px; padding:6px 10px; }
-  .icon-btn  { font-size:10px; padding:5px 8px; }
-  .sim-body  { padding:10px 12px 12px; }
-}
-/* iPadOS pointer */
-@media (pointer: coarse) {
-  .p-sw      { border-width:3px; }
-  .tool-btn  { padding:9px 6px; }
-  .reg-item  { padding:9px 10px; }
-  .icon-btn  { padding:8px 12px; }
+@media(pointer:coarse){
+  .p-sw{border-width:3px}
+  .tool-btn{padding:9px 5px}
+  .layer-item{padding:10px 10px}
 }
 </style>
 </head>
 <body>
 
-<!-- ===== TOPBAR ===== -->
+<!-- TOPBAR -->
 <div class="topbar">
   <div class="tb-brand">
     <div class="tb-icon">🏠</div>
     <div>
       <div class="tb-title">住宅カラーシミュレーター</div>
-      <div class="tb-sub">REAL PHOTO COLOR PLANNING SYSTEM</div>
+      <div class="tb-sub">LAYER-BASED COLOR SYSTEM</div>
     </div>
   </div>
-  <div class="tb-right">
-    <button class="tb-api-btn" id="api-btn" onclick="openApiModal()">
-      <div class="tb-api-dot" id="api-dot"></div>
-      <span id="api-btn-label">APIキー設定</span>
-    </button>
-  </div>
+  <button class="api-btn" id="api-btn" onclick="openModal()">
+    <div class="api-dot" id="api-dot"></div>
+    <span id="api-lbl">APIキー設定</span>
+  </button>
 </div>
 
-<!-- ===== API KEY MODAL ===== -->
-<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+<!-- API MODAL -->
+<div class="modal-ov" id="modal-ov" onclick="closeModalOut(event)">
   <div class="modal-box">
     <div class="modal-title">🔑 Anthropic APIキーの設定</div>
-    <div class="modal-desc">
-      AI自動認識機能を使うには、Anthropic APIキーが必要です。<br>
-      キーは <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> から取得できます。<br>
-      入力したキーはこのブラウザにのみ保存され、外部には送信されません。
+    <div class="modal-desc">AI自動認識機能を使うには <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> でAPIキーを取得してください。キーはこのブラウザにのみ保存されます。</div>
+    <label class="modal-lbl">APIキー（sk-ant-… から始まる文字列）</label>
+    <div class="modal-inp-wrap">
+      <input type="password" id="api-inp" placeholder="sk-ant-api03-xxxxxxxx" autocomplete="off" spellcheck="false">
+      <button class="modal-eye" onclick="toggleEye()" id="eye-btn">👁️</button>
     </div>
-    <label class="modal-label" for="api-key-input">APIキー（sk-ant-… から始まる文字列）</label>
-    <div class="modal-input-wrap">
-      <input type="password" id="api-key-input" placeholder="sk-ant-api03-xxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
-      <button class="modal-eye" onclick="toggleKeyVisible()" id="eye-btn" title="表示/非表示">👁️</button>
-    </div>
-    <div class="modal-info-box">
-      💡 <strong>このファイルについて：</strong><br>
-      HTMLファイルをダブルクリックするだけでブラウザで開けます。<br>
-      Mac・Windows・iPad すべてで動作します。<br>
-      APIキーはブラウザの <code>localStorage</code> に保存され、他の端末やサイトには共有されません。
-    </div>
+    <div class="modal-info">💡 HTMLファイルをダブルクリックするだけでMac・Windows・iPadで動作します。APIキーはブラウザのlocalStorageに保存され、他には共有されません。</div>
     <div class="modal-btns">
-      <button class="modal-btn-cancel" onclick="closeModal()">キャンセル</button>
-      <button class="modal-btn-save"   onclick="saveApiKey()">保存して閉じる</button>
+      <button class="modal-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="modal-save" onclick="saveKey()">保存して閉じる</button>
     </div>
   </div>
 </div>
 
-<!-- ===== APP WRAP ===== -->
-<div class="app-wrap">
+<!-- APP -->
+<div class="app">
 
-<!-- ===== LEFT PANEL ===== -->
-<div class="left-panel">
+<!-- LEFT PANEL -->
+<div class="lp">
 
   <!-- S1: Upload -->
-  <div class="panel-section">
-    <div class="section-title"><div class="section-n">1</div>写真をアップロード</div>
-    <!--
-      iPad Safari 完全対応：
-      input[type=file] を <label> で直接ラップする。
-      これがすべてのブラウザ・OSで最も確実な方法。
-      display:none や .click() は使わない。
-    -->
-    <label class="upload-label" id="upload-label">
-      <input type="file" id="file-input"
-             accept="image/*"
-             onchange="loadFile(event)">
+  <div class="sec">
+    <div class="sec-ttl"><div class="sn">1</div>写真をアップロード</div>
+    <label class="upload-lbl" id="upload-lbl">
+      <input type="file" id="file-inp" accept="image/*" onchange="loadFile(event)">
       <div class="uz-icon">📷</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">タップして写真を選ぶ</div>
-      <div class="uz-main-btn">📂 写真を選ぶ</div>
+      <div class="uz-txt">住宅写真を選んで開始</div>
+      <div class="uz-btn">📂 写真を選ぶ</div>
       <div class="uz-sub">JPG / PNG / HEIC 対応</div>
     </label>
     <div class="upload-name" id="upload-name"></div>
   </div>
 
   <!-- S2: Color -->
-  <div class="panel-section">
-    <div class="section-title"><div class="section-n">2</div>カラーを選択</div>
-    <div class="palette-grid" id="palette">
-      <div class="p-chip" onclick="pickColor('#F5F5F0','ピュアホワイト')"><div class="p-sw" style="background:#F5F5F0;border:1px solid #ccc;"></div><div class="p-nm">ホワイト</div></div>
-      <div class="p-chip" onclick="pickColor('#F5F0DC','アイボリー')"><div class="p-sw" style="background:#F5F0DC;"></div><div class="p-nm">アイボリー</div></div>
-      <div class="p-chip" onclick="pickColor('#E0D0B0','ライトベージュ')"><div class="p-sw" style="background:#E0D0B0;"></div><div class="p-nm">L.ベージュ</div></div>
-      <div class="p-chip" onclick="pickColor('#C8A878','サンドベージュ')"><div class="p-sw" style="background:#C8A878;"></div><div class="p-nm">サンドBG</div></div>
-      <div class="p-chip" onclick="pickColor('#A07850','キャメル')"><div class="p-sw" style="background:#A07850;"></div><div class="p-nm">キャメル</div></div>
-      <div class="p-chip" onclick="pickColor('#6A4828','ダークブラウン')"><div class="p-sw" style="background:#6A4828;"></div><div class="p-nm">D.ブラウン</div></div>
-      <div class="p-chip" onclick="pickColor('#708090','スレートグレー')"><div class="p-sw" style="background:#708090;"></div><div class="p-nm">スレートGY</div></div>
-      <div class="p-chip" onclick="pickColor('#3C3C3C','チャコール')"><div class="p-sw" style="background:#3C3C3C;"></div><div class="p-nm">チャコール</div></div>
-      <div class="p-chip" onclick="pickColor('#5A7090','スチールブルー')"><div class="p-sw" style="background:#5A7090;"></div><div class="p-nm">スチールBL</div></div>
-      <div class="p-chip" onclick="pickColor('#487860','フォレストG')"><div class="p-sw" style="background:#487860;"></div><div class="p-nm">フォレスト</div></div>
-      <div class="p-chip" onclick="pickColor('#AA4828','テラコッタ')"><div class="p-sw" style="background:#AA4828;"></div><div class="p-nm">テラコッタ</div></div>
-      <div class="p-chip" onclick="pickColor('#181818','マットブラック')"><div class="p-sw" style="background:#181818;"></div><div class="p-nm">マットBK</div></div>
+  <div class="sec">
+    <div class="sec-ttl"><div class="sn">2</div>塗装カラーを選択</div>
+    <div class="pal-grid">
+      <div class="p-chip" onclick="pickColor('#F5F5F0','ピュアホワイト')"><div class="p-sw" style="background:#F5F5F0;border:1px solid #ccc"></div><div class="p-nm">ホワイト</div></div>
+      <div class="p-chip" onclick="pickColor('#F5F0DC','アイボリー')"><div class="p-sw" style="background:#F5F0DC"></div><div class="p-nm">アイボリー</div></div>
+      <div class="p-chip" onclick="pickColor('#E0D0B0','ライトBG')"><div class="p-sw" style="background:#E0D0B0"></div><div class="p-nm">L.ベージュ</div></div>
+      <div class="p-chip" onclick="pickColor('#C8A878','サンドBG')"><div class="p-sw" style="background:#C8A878"></div><div class="p-nm">サンドBG</div></div>
+      <div class="p-chip" onclick="pickColor('#A07850','キャメル')"><div class="p-sw" style="background:#A07850"></div><div class="p-nm">キャメル</div></div>
+      <div class="p-chip" onclick="pickColor('#6A4828','D.ブラウン')"><div class="p-sw" style="background:#6A4828"></div><div class="p-nm">D.ブラウン</div></div>
+      <div class="p-chip" onclick="pickColor('#708090','スレートGY')"><div class="p-sw" style="background:#708090"></div><div class="p-nm">スレートGY</div></div>
+      <div class="p-chip" onclick="pickColor('#3C3C3C','チャコール')"><div class="p-sw" style="background:#3C3C3C"></div><div class="p-nm">チャコール</div></div>
+      <div class="p-chip" onclick="pickColor('#5A7090','スチールBL')"><div class="p-sw" style="background:#5A7090"></div><div class="p-nm">スチールBL</div></div>
+      <div class="p-chip" onclick="pickColor('#487860','フォレスト')"><div class="p-sw" style="background:#487860"></div><div class="p-nm">フォレスト</div></div>
+      <div class="p-chip" onclick="pickColor('#AA4828','テラコッタ')"><div class="p-sw" style="background:#AA4828"></div><div class="p-nm">テラコッタ</div></div>
+      <div class="p-chip" onclick="pickColor('#181818','マットBK')"><div class="p-sw" style="background:#181818"></div><div class="p-nm">マットBK</div></div>
     </div>
     <div class="cust-row">
       <label>カスタム:</label>
-      <input type="color" id="cust-color" value="#F5F0DC" oninput="pickColor(this.value,'カスタム '+this.value.toUpperCase())">
-      <span id="cust-hex" style="font-family:monospace;font-size:10px;color:var(--text2);">#F5F0DC</span>
+      <input type="color" id="cust-col" value="#F5F0DC" oninput="pickColor(this.value,'カスタム '+this.value.toUpperCase())">
+      <span id="cust-hex" style="font-family:monospace;font-size:10px;color:var(--tx2)">#F5F0DC</span>
     </div>
     <div class="sel-disp">
-      <div class="sel-sw" id="sel-sw" style="background:#F5F0DC;"></div>
+      <div class="sel-sw" id="sel-sw" style="background:#F5F0DC"></div>
       <div>
         <div class="sel-nm" id="sel-nm">アイボリー</div>
         <div class="sel-cd" id="sel-cd">#F5F0DC</div>
@@ -685,107 +321,105 @@ button, input, textarea, select { font-family: inherit; }
     </div>
   </div>
 
-  <!-- S3: Tool -->
-  <div class="panel-section">
-    <div class="section-title"><div class="section-n">3</div>ブラシ設定</div>
+  <!-- S3: Layers -->
+  <div class="sec" id="layers-sec" style="display:none">
+    <div class="sec-ttl"><div class="sn" style="background:var(--purple)">AI</div>部位レイヤー</div>
+    <div class="info-pill gold" style="margin-bottom:9px;font-size:10px;">部位名をタップ→選択した色に変更<br>🖌️ブラシで境界を手動調整できます</div>
+    <div class="layer-list" id="layer-list"></div>
+  </div>
+
+  <!-- S4: Brush (manual adjust) -->
+  <div class="sec" id="brush-sec" style="display:none">
+    <div class="sec-ttl"><div class="sn">3</div>手動調整ブラシ</div>
     <div class="tool-row">
-      <button class="tool-btn active" id="tb-brush"  onclick="setTool('brush')">🖌️ ブラシ</button>
-      <button class="tool-btn"        id="tb-eraser" onclick="setTool('eraser')">🧹 消し</button>
-      <button class="tool-btn"        id="tb-fill"   onclick="setTool('fill')">🪣 塗潰</button>
+      <button class="tool-btn active" id="tb-brush"  onclick="setTool('brush')">🖌️ 塗る</button>
+      <button class="tool-btn"        id="tb-eraser" onclick="setTool('eraser')">🧹 消す</button>
     </div>
-    <div class="slider-row">
+    <div class="sl-row">
       <label>サイズ</label>
-      <input type="range" id="br-size" min="5" max="100" value="24" oninput="updBrush()">
-      <span id="br-size-v">24px</span>
+      <input type="range" id="br-sz" min="4" max="80" value="20" oninput="updBr()">
+      <span id="br-sz-v">20px</span>
     </div>
-    <div class="slider-row">
+    <div class="sl-row">
       <label>不透明度</label>
-      <input type="range" id="br-opa" min="20" max="100" value="72" oninput="updOpa()">
-      <span id="br-opa-v">72%</span>
+      <input type="range" id="br-op" min="20" max="100" value="85" oninput="updOp()">
+      <span id="br-op-v">85%</span>
     </div>
-    <div class="info-pill blue" style="margin-top:6px;font-size:10px;">
-      <strong>ブラシ</strong>…なぞって塗る　<strong>消し</strong>…はみ出しを消す　<strong>塗潰</strong>…クリックで一括塗装
-    </div>
+    <div class="info-pill blue" style="font-size:10px;">レイヤーを選択した状態でブラシを使うと、その部位の色で塗れます</div>
   </div>
 
-  <!-- S4: AI Regions (shown after AI runs) -->
-  <div class="panel-section" id="regions-section" style="display:none;">
-    <div class="section-title"><div class="section-n" style="background:var(--purple);">AI</div>AI認識エリア</div>
-    <div class="info-pill gold" style="margin-bottom:9px;">部位をクリック → 左のカラーで色を変更</div>
-    <div class="region-list" id="region-list"></div>
+</div><!-- end .lp -->
+
+<!-- RIGHT COL -->
+<div class="rc">
+
+  <!-- Stage toolbar -->
+  <div class="stage-bar">
+    <span class="bar-lbl">シミュレーター</span>
+    <button class="ai-btn" id="ai-btn" onclick="runAI()" disabled>✨ AIで部位を自動認識</button>
+    <div class="spacer"></div>
+    <button class="icon-btn" onclick="undoAct()" title="元に戻す">↩ 戻す</button>
+    <button class="icon-btn" onclick="redoAct()" title="やり直す">↪ やり直す</button>
+    <button class="icon-btn del" onclick="clearAll()">🗑 クリア</button>
   </div>
 
-</div>
-<!-- end left-panel -->
+  <div class="ai-ribbon" id="ai-ribbon">
+    <div class="spin"></div>
+    <span id="ai-msg">AIが住宅写真を解析しています…</span>
+  </div>
 
-
-<!-- ===== RIGHT COL ===== -->
-<div class="right-col">
-
-  <!-- Simulator -->
-  <div class="sim-card">
-    <div class="stage-bar">
-      <span class="bar-label">シミュレーター</span>
-      <button class="ai-btn" id="ai-btn" onclick="runAI()" disabled>✨ AIで部位を自動認識</button>
-      <div class="spacer"></div>
-      <button class="icon-btn" onclick="undo()" title="元に戻す">↩ 戻す</button>
-      <button class="icon-btn" onclick="redo()" title="やり直す">↪ やり直す</button>
-      <button class="icon-btn del" onclick="clearPaint()" title="塗装クリア">🗑 クリア</button>
-    </div>
-
-    <div class="ai-ribbon" id="ai-ribbon">
-      <div class="spin"></div>
-      <span id="ai-ribbon-msg">AIが住宅写真を解析しています…</span>
-    </div>
-
-    <div class="sim-body">
-      <div class="sim-outer" id="sim-outer">
-        <canvas id="base-canvas"></canvas>
-        <canvas id="paint-canvas"></canvas>
-        <div class="sim-ph" id="sim-ph">
-          <div class="sim-ph-icon">🏠</div>
-          <div class="sim-ph-txt">住宅写真をアップロードすると<br>ここにシミュレーターが表示されます</div>
-        </div>
-        <div class="lo" id="lo">
-          <div class="lo-spin"></div>
-          <span id="lo-msg">AI解析中…</span>
-        </div>
+  <div class="sim-body">
+    <div class="sim-outer" id="sim-outer">
+      <!-- Layer 0: Original photo -->
+      <canvas id="c-photo"></canvas>
+      <!-- Layer 1: Color overlay (composited from all region layers) -->
+      <canvas class="overlay-canvas" id="c-overlay"></canvas>
+      <!-- Layer 2: Brush strokes (manual adjustment) -->
+      <canvas id="c-brush"></canvas>
+      <!-- Placeholder -->
+      <div class="sim-ph" id="sim-ph">
+        <div class="sim-ph-icon">🏠</div>
+        <div class="sim-ph-txt">住宅写真をアップロードすると<br>ここにシミュレーターが表示されます</div>
       </div>
-      <div class="canvas-hint" id="canvas-hint">🖌️ キャンバスをなぞって塗装 ／ AIボタンで部位を自動検出</div>
+      <!-- Loading -->
+      <div class="lo" id="lo">
+        <div class="lo-spin"></div>
+        <span id="lo-msg">AI解析中…</span>
+      </div>
     </div>
+    <div class="canvas-hint" id="canvas-hint">部位レイヤーをタップして色変更 ／ ブラシで手動調整</div>
   </div>
 
-  <!-- Color summary -->
-  <div class="summary-bar" id="summary-bar">
-    <span class="sum-label">配色</span>
-    <span style="font-size:10px;color:var(--text3);">塗装すると自動表示されます</span>
+  <!-- Summary -->
+  <div class="sum-bar" id="sum-bar">
+    <span class="sum-lbl">配色</span>
+    <span style="font-size:10px;color:var(--tx3)">写真をアップロードすると表示されます</span>
   </div>
 
   <!-- Report -->
   <div>
-    <div class="report-header-bar">
+    <div class="rpt-hdr">
       <div class="rh-left">
         <div class="rh-icon">📄</div>
         <div class="rh-title">施工前・施工後 提案シート（A4横）</div>
       </div>
-      <button class="pdf-btn" onclick="savePDF()">⬇ 提案シートをPDFで保存</button>
+      <button class="pdf-btn" onclick="savePDF()">⬇ PDFで保存</button>
     </div>
-
     <div class="a4-wrap">
       <div id="report-sheet">
         <div class="rs-head">
           <div>
-            <div class="rs-main-title">御満足いただける住まいへ　外壁塗装カラーシミュレーション御提案書</div>
-            <div class="rs-sub-title">EXTERIOR PAINTING COLOR SIMULATION PROPOSAL</div>
+            <div class="rs-main">御満足いただける住まいへ　外壁塗装カラーシミュレーション御提案書</div>
+            <div class="rs-sub">EXTERIOR PAINTING COLOR SIMULATION PROPOSAL</div>
           </div>
           <div class="rs-logo">株式会社〇〇リフォーム<br>TEL: 0120-XXX-XXX<br>営業担当</div>
         </div>
         <div class="gold-bar"></div>
-        <div class="rs-info-bar">
-          <div class="rs-field"><label>お客様名</label><input type="text" placeholder="山田 太郎　様" id="r-cust"></div>
-          <div class="rs-field"><label>御住所</label><input type="text" placeholder="東京都〇〇区〇〇1-2-3" id="r-addr" style="width:165px;"></div>
-          <div class="rs-field"><label>作成日</label><input type="text" id="r-date" style="width:105px;"></div>
-          <div class="rs-field"><label>担当者名</label><input type="text" placeholder="鈴木 花子" id="r-staff"></div>
+        <div class="rs-info">
+          <div class="rs-fld"><label>お客様名</label><input type="text" placeholder="山田 太郎　様" id="r-cust"></div>
+          <div class="rs-fld"><label>御住所</label><input type="text" placeholder="東京都〇〇区〇〇1-2-3" id="r-addr" style="width:160px"></div>
+          <div class="rs-fld"><label>作成日</label><input type="text" id="r-date" style="width:100px"></div>
+          <div class="rs-fld"><label>担当者名</label><input type="text" placeholder="鈴木 花子" id="r-staff"></div>
         </div>
         <div class="rs-body">
           <div class="ba-col">
@@ -797,390 +431,303 @@ button, input, textarea, select { font-family: inherit; }
           <div class="ba-col">
             <div class="ba-lbl after">◼ 施工後（提案カラー）</div>
             <div class="ba-box" id="ba-after-box"><canvas id="rpt-after"></canvas></div>
-            <div class="ba-note" style="color:var(--accent);font-weight:700;">※シミュレーターの提案カラーです</div>
+            <div class="ba-note" style="color:var(--acc);font-weight:700">※シミュレーターの提案カラーです</div>
           </div>
           <div class="rs-info-col">
             <div class="spec-box">
               <div class="spec-head">🎨 使用カラー仕様</div>
-              <div id="spec-rows">
-                <div class="spec-row" style="color:var(--text3);font-size:11px;padding:9px 11px;">塗装データなし</div>
-              </div>
+              <div id="spec-rows"><div class="spec-row" style="color:var(--tx3);font-size:11px;padding:9px 11px">塗装データなし</div></div>
             </div>
             <div class="notes-box">
               <div class="notes-head">📝 担当者コメント・備考</div>
               <textarea id="r-notes" placeholder="例）外壁はアイボリー系で統一し、屋根は落ち着いたブラウンをご提案しております。"></textarea>
             </div>
-            <div style="font-size:9px;color:var(--text3);line-height:1.6;padding:2px;">
-              ※本提案書はカラーシミュレーション用資料です。実際の仕上がり色は塗料メーカーのサンプルで必ずご確認ください。
-            </div>
+            <div style="font-size:9px;color:var(--tx3);line-height:1.6;padding:2px">※本提案書はカラーシミュレーション用資料です。実際の仕上がり色は塗料メーカーのサンプルで必ずご確認ください。</div>
           </div>
         </div>
         <div class="rs-footer">
-          <div class="rs-footer-note">
-            本資料は外壁塗装カラーシミュレーション御提案書です。ご不明な点はお気軽に担当者までお問い合わせください。<br>
-            〒000-0000　東京都〇〇区〇〇1-2-3　TEL: 0120-XXX-XXX　FAX: 0X-XXXX-XXXX
-          </div>
+          <div class="rs-fnote">本資料は外壁塗装カラーシミュレーション御提案書です。ご不明な点はお気軽に担当者までお問い合わせください。<br>〒000-0000　東京都〇〇区〇〇1-2-3　TEL: 0120-XXX-XXX　FAX: 0X-XXXX-XXXX</div>
           <div class="rs-stamp">確認印<br>欄</div>
         </div>
       </div>
     </div>
   </div>
 
-</div>
-<!-- end right-col -->
-</div>
-<!-- end app-wrap -->
+</div><!-- end .rc -->
+</div><!-- end .app -->
 
 <div class="toast" id="toast"></div>
 
 <script>
-/* ============================================================
-   API KEY — stored in localStorage
-   ============================================================ */
+/* =====================================================
+   API KEY
+===================================================== */
 let API_KEY = localStorage.getItem('sim_api_key') || '';
 
-function openApiModal() {
-  document.getElementById('api-key-input').value = API_KEY;
-  document.getElementById('modal-overlay').classList.add('open');
+function openModal() { document.getElementById('api-inp').value=API_KEY; document.getElementById('modal-ov').classList.add('open'); }
+function closeModal() { document.getElementById('modal-ov').classList.remove('open'); }
+function closeModalOut(e) { if(e.target===document.getElementById('modal-ov')) closeModal(); }
+function toggleEye() {
+  const i=document.getElementById('api-inp'), e=document.getElementById('eye-btn');
+  i.type=i.type==='password'?'text':'password';
+  e.textContent=i.type==='password'?'👁️':'🙈';
 }
-function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
-function closeModalOutside(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
-function toggleKeyVisible() {
-  const inp = document.getElementById('api-key-input');
-  const eye = document.getElementById('eye-btn');
-  if (inp.type === 'password') { inp.type = 'text';     eye.textContent = '🙈'; }
-  else                          { inp.type = 'password'; eye.textContent = '👁️'; }
-}
-function saveApiKey() {
-  const val = document.getElementById('api-key-input').value.trim();
-  API_KEY = val;
-  if (val) localStorage.setItem('sim_api_key', val);
-  else      localStorage.removeItem('sim_api_key');
-  updateApiStatus();
-  closeModal();
-  toast(val ? '✅ APIキーを保存しました' : 'APIキーを削除しました', 'ok');
+function saveKey() {
+  const v=document.getElementById('api-inp').value.trim();
+  API_KEY=v;
+  v ? localStorage.setItem('sim_api_key',v) : localStorage.removeItem('sim_api_key');
+  updateApiStatus(); closeModal();
+  toast(v?'✅ APIキーを保存しました':'APIキーを削除しました', v?'ok':'');
 }
 function updateApiStatus() {
-  const dot = document.getElementById('api-dot');
-  const lbl = document.getElementById('api-btn-label');
-  const btn = document.getElementById('api-btn');
-  if (API_KEY && API_KEY.startsWith('sk-')) {
-    dot.classList.add('on');
-    lbl.textContent = 'AI接続済み';
-    document.getElementById('api-btn').classList.add('connected');
-    if (originalImage) btn.disabled = false;
-  } else {
-    dot.classList.remove('on');
-    lbl.textContent = 'APIキー設定';
-    document.getElementById('api-btn').classList.remove('connected');
-  }
+  const ok = API_KEY && API_KEY.startsWith('sk-');
+  document.getElementById('api-dot').classList.toggle('on', ok);
+  document.getElementById('api-lbl').textContent = ok ? 'AI接続済み' : 'APIキー設定';
+  document.getElementById('api-btn').classList.toggle('on', ok);
+  if (ok && origImg) document.getElementById('ai-btn').disabled = false;
 }
 
-/* ============================================================
+/* =====================================================
    STATE
-   ============================================================ */
-let curColor     = '#F5F0DC';
-let curColorName = 'アイボリー';
-let curTool      = 'brush';
-let brushSz      = 24;
-let brushOpa     = 0.72;
-let isDrawing    = false;
-let lastX = 0, lastY = 0;
-let originalImage = null;
-const undoStack = [], redoStack = [];
-const MAX_UNDO  = 40;
-let aiRegions   = [];
-let partColors  = {};
+===================================================== */
+let curColor = '#F5F0DC', curColorName = 'アイボリー';
+let curTool  = 'brush', brushSz = 20, brushOp = 0.85;
+let isDrawing = false, lastX = 0, lastY = 0;
+let origImg = null;      // original HTMLImageElement
+let cW = 0, cH = 0;     // canvas size
 
-/* ============================================================
-   CANVAS
-   ============================================================ */
-const simOuter    = document.getElementById('sim-outer');
-const baseCanvas  = document.getElementById('base-canvas');
-const paintCanvas = document.getElementById('paint-canvas');
-const baseCtx     = baseCanvas.getContext('2d');
-const paintCtx    = paintCanvas.getContext('2d');
+// Layers: [{id, label, color, origColor, maskData (ImageData), visible}]
+let layers = [];
+let activeLayerIdx = -1;
 
-function resizeCanvases(w, h) {
-  baseCanvas.width = paintCanvas.width   = w;
-  baseCanvas.height = paintCanvas.height = h;
-  baseCanvas.style.width  = paintCanvas.style.width  = w + 'px';
-  baseCanvas.style.height = paintCanvas.style.height = h + 'px';
+// Undo stack: snapshot of overlay canvas
+const undoStack = [], redoStack = [], MAX_UNDO = 30;
+
+/* =====================================================
+   CANVAS ELEMENTS
+===================================================== */
+const simOuter   = document.getElementById('sim-outer');
+const cPhoto     = document.getElementById('c-photo');
+const cOverlay   = document.getElementById('c-overlay');
+const cBrush     = document.getElementById('c-brush');
+const ctxPhoto   = cPhoto.getContext('2d');
+const ctxOverlay = cOverlay.getContext('2d');
+const ctxBrush   = cBrush.getContext('2d');
+
+function resizeAll(w, h) {
+  cW = w; cH = h;
+  [cPhoto, cOverlay, cBrush].forEach(c => {
+    c.width = w; c.height = h;
+    c.style.width = w + 'px'; c.style.height = h + 'px';
+  });
+  cOverlay.style.pointerEvents = 'none';
   simOuter.style.minHeight = h + 'px';
 }
 
-/* ============================================================
-   UPLOAD — label ラップ方式（iPad Safari 完全対応）
-   ============================================================ */
-const uploadLabel = document.getElementById('upload-label');
-
-// ドラッグ＆ドロップ（Mac / Windows 向け）
-uploadLabel.addEventListener('dragover', e => {
-  e.preventDefault(); uploadLabel.classList.add('over');
-});
-uploadLabel.addEventListener('dragleave', () => uploadLabel.classList.remove('over'));
-uploadLabel.addEventListener('drop', e => {
-  e.preventDefault(); uploadLabel.classList.remove('over');
+/* =====================================================
+   UPLOAD
+===================================================== */
+document.getElementById('upload-lbl').addEventListener('dragover', e => { e.preventDefault(); document.getElementById('upload-lbl').classList.add('over'); });
+document.getElementById('upload-lbl').addEventListener('dragleave', () => document.getElementById('upload-lbl').classList.remove('over'));
+document.getElementById('upload-lbl').addEventListener('drop', e => {
+  e.preventDefault(); document.getElementById('upload-lbl').classList.remove('over');
   const f = e.dataTransfer.files[0];
   if (f && f.type.startsWith('image/')) loadImageFile(f);
 });
-
-function loadFile(e) {
-  const f = e.target.files[0];
-  if (f) loadImageFile(f);
-  e.target.value = ''; // 同じファイルを再選択できるようリセット
-}
+function loadFile(e) { const f = e.target.files[0]; if (f) loadImageFile(f); e.target.value = ''; }
 
 function loadImageFile(file) {
-  // iPad の写真アプリからの HEIC も FileReader で読める
   const reader = new FileReader();
-  reader.onerror = () => toast('写真の読み込みに失敗しました。別の写真をお試しください。', 'err');
+  reader.onerror = () => toast('写真の読み込みに失敗しました', 'err');
   reader.onload = ev => {
     const img = new Image();
-    img.onerror = () => toast('この形式の写真は表示できません。JPGまたはPNGでお試しください。', 'err');
+    img.onerror = () => toast('この形式の写真は表示できません', 'err');
     img.onload = () => {
-      originalImage = img;
-      const maxW = Math.min(820, img.width);
+      origImg = img;
+      const maxW = Math.min(780, img.width);
       const s = maxW / img.width;
-      const w = Math.round(img.width * s);
-      const h = Math.round(img.height * s);
-      resizeCanvases(w, h);
-      baseCtx.drawImage(img, 0, 0, w, h);
-      paintCtx.clearRect(0, 0, w, h);
+      resizeAll(Math.round(img.width * s), Math.round(img.height * s));
+      ctxPhoto.drawImage(img, 0, 0, cW, cH);
+      ctxOverlay.clearRect(0, 0, cW, cH);
+      ctxBrush.clearRect(0, 0, cW, cH);
+      layers = []; activeLayerIdx = -1;
       undoStack.length = redoStack.length = 0;
-      aiRegions = []; partColors = {};
 
-      document.getElementById('sim-ph').style.display      = 'none';
+      document.getElementById('sim-ph').style.display = 'none';
       document.getElementById('canvas-hint').style.display = 'block';
       document.getElementById('upload-name').style.display = 'block';
-      document.getElementById('upload-name').textContent   = '📁 ' + file.name;
-      document.getElementById('regions-section').style.display = 'none';
-      if (API_KEY && API_KEY.startsWith('sk-')) {
-        document.getElementById('ai-btn').disabled = false;
-      }
+      document.getElementById('upload-name').textContent = '📁 ' + file.name;
+      document.getElementById('layers-sec').style.display = 'none';
+      document.getElementById('brush-sec').style.display = 'none';
+      if (API_KEY && API_KEY.startsWith('sk-')) document.getElementById('ai-btn').disabled = false;
+
       syncReport(); updateSummary();
-      toast('✅ 写真を読み込みました！AIボタンで部位を自動認識できます。', 'ok');
+      toast('✅ 写真を読み込みました！AIボタンで部位を自動認識できます', 'ok');
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 }
 
-/* ============================================================
+/* =====================================================
    COLOR PICKER
-   ============================================================ */
+===================================================== */
 function pickColor(hex, name) {
   curColor = hex; curColorName = name;
   document.getElementById('sel-sw').style.background = hex;
-  document.getElementById('sel-nm').textContent      = name;
-  document.getElementById('sel-cd').textContent      = hex.toUpperCase();
-  document.getElementById('cust-color').value        = hex;
-  document.getElementById('cust-hex').textContent    = hex.toUpperCase();
+  document.getElementById('sel-nm').textContent = name;
+  document.getElementById('sel-cd').textContent = hex.toUpperCase();
+  document.getElementById('cust-col').value = hex;
+  document.getElementById('cust-hex').textContent = hex.toUpperCase();
   document.querySelectorAll('.p-sw').forEach(sw => {
-    const m = (sw.closest('.p-chip').getAttribute('onclick')||'').match(/'(#[0-9A-Fa-f]+)'/);
+    const m = (sw.closest('.p-chip').getAttribute('onclick') || '').match(/'(#[0-9A-Fa-f]+)'/);
     sw.classList.toggle('sel', m && m[1].toUpperCase() === hex.toUpperCase());
   });
 }
 
-/* ============================================================
-   TOOLS
-   ============================================================ */
+/* =====================================================
+   TOOL
+===================================================== */
 function setTool(t) {
   curTool = t;
-  ['brush','eraser','fill'].forEach(id =>
-    document.getElementById('tb-'+id).classList.toggle('active', id === t)
-  );
-  paintCanvas.style.cursor = t === 'fill' ? 'cell' : 'crosshair';
+  ['brush','eraser'].forEach(id => document.getElementById('tb-'+id).classList.toggle('active', id === t));
+  cBrush.style.cursor = 'crosshair';
 }
-function updBrush() {
-  brushSz = parseInt(document.getElementById('br-size').value);
-  document.getElementById('br-size-v').textContent = brushSz + 'px';
-}
-function updOpa() {
-  brushOpa = parseInt(document.getElementById('br-opa').value) / 100;
-  document.getElementById('br-opa-v').textContent = Math.round(brushOpa*100) + '%';
-}
+function updBr() { brushSz = +document.getElementById('br-sz').value; document.getElementById('br-sz-v').textContent = brushSz + 'px'; }
+function updOp() { brushOp = +document.getElementById('br-op').value / 100; document.getElementById('br-op-v').textContent = Math.round(brushOp*100) + '%'; }
 
-/* ============================================================
-   DRAWING  (mouse + touch + stylus)
-   ============================================================ */
+/* =====================================================
+   BRUSH DRAWING (manual adjustment)
+===================================================== */
 function getXY(e) {
-  const rect = paintCanvas.getBoundingClientRect();
-  const sx = paintCanvas.width  / rect.width;
-  const sy = paintCanvas.height / rect.height;
+  const rect = cBrush.getBoundingClientRect();
+  const sx = cW / rect.width, sy = cH / rect.height;
   const src = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
-  return { x:(src.clientX - rect.left)*sx, y:(src.clientY - rect.top)*sy };
+  return { x: (src.clientX - rect.left) * sx, y: (src.clientY - rect.top) * sy };
 }
-
 function saveUndo() {
-  undoStack.push(paintCtx.getImageData(0,0,paintCanvas.width,paintCanvas.height));
+  undoStack.push(ctxOverlay.getImageData(0, 0, cW, cH));
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack.length = 0;
 }
-
-paintCanvas.addEventListener('pointerdown', e => {
-  if (!originalImage) return;
-  e.preventDefault();
-  const {x,y} = getXY(e);
-  if (curTool === 'fill') { saveUndo(); floodFill(Math.round(x),Math.round(y)); endDraw(); return; }
-  saveUndo(); isDrawing=true; lastX=x; lastY=y;
-  strokeLine(x,y,x,y);
+cBrush.addEventListener('pointerdown', e => {
+  if (!origImg) return; e.preventDefault();
+  saveUndo(); isDrawing = true;
+  const {x,y} = getXY(e); lastX = x; lastY = y;
+  strokeAt(x, y, x, y);
 });
-paintCanvas.addEventListener('pointermove', e => {
+cBrush.addEventListener('pointermove', e => {
   if (!isDrawing) return; e.preventDefault();
-  const {x,y}=getXY(e); strokeLine(lastX,lastY,x,y); lastX=x; lastY=y;
+  const {x,y} = getXY(e); strokeAt(lastX, lastY, x, y); lastX = x; lastY = y;
 });
-paintCanvas.addEventListener('pointerup',    () => endDraw());
-paintCanvas.addEventListener('pointerleave', () => endDraw());
-paintCanvas.addEventListener('touchstart',   e => e.preventDefault(),{passive:false});
-paintCanvas.addEventListener('touchmove',    e => e.preventDefault(),{passive:false});
-
-function endDraw() {
-  if (isDrawing) { isDrawing=false; syncReport(); updateSummary(); }
-}
+cBrush.addEventListener('pointerup',    () => { if(isDrawing){ isDrawing=false; syncReport(); updateSummary(); }});
+cBrush.addEventListener('pointerleave', () => { if(isDrawing){ isDrawing=false; syncReport(); updateSummary(); }});
+cBrush.addEventListener('touchstart',   e => e.preventDefault(), {passive:false});
+cBrush.addEventListener('touchmove',    e => e.preventDefault(), {passive:false});
 
 function hex2rgba(hex, a) {
   hex = hex.replace('#','');
-  if (hex.length===3) hex=hex.split('').map(c=>c+c).join('');
-  const n=parseInt(hex,16);
+  if (hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex, 16);
   return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
 }
-
-function strokeLine(x0,y0,x1,y1) {
-  paintCtx.save();
-  if (curTool==='eraser') {
-    paintCtx.globalCompositeOperation='destination-out';
-    paintCtx.strokeStyle='rgba(0,0,0,1)';
+function strokeAt(x0, y0, x1, y1) {
+  // Brush strokes paint onto the overlay canvas
+  const col = activeLayerIdx >= 0 ? layers[activeLayerIdx].color : curColor;
+  ctxOverlay.save();
+  if (curTool === 'eraser') {
+    ctxOverlay.globalCompositeOperation = 'destination-out';
+    ctxOverlay.strokeStyle = 'rgba(0,0,0,1)';
   } else {
-    paintCtx.globalCompositeOperation='source-over';
-    paintCtx.strokeStyle=hex2rgba(curColor,brushOpa);
+    ctxOverlay.globalCompositeOperation = 'source-over';
+    ctxOverlay.strokeStyle = hex2rgba(col, brushOp);
   }
-  paintCtx.lineWidth=brushSz; paintCtx.lineCap='round'; paintCtx.lineJoin='round';
-  paintCtx.beginPath(); paintCtx.moveTo(x0,y0); paintCtx.lineTo(x1,y1); paintCtx.stroke();
-  paintCtx.restore();
+  ctxOverlay.lineWidth = brushSz; ctxOverlay.lineCap = 'round'; ctxOverlay.lineJoin = 'round';
+  ctxOverlay.beginPath(); ctxOverlay.moveTo(x0, y0); ctxOverlay.lineTo(x1, y1); ctxOverlay.stroke();
+  ctxOverlay.restore();
 }
 
-/* ============================================================
-   FLOOD FILL
-   ============================================================ */
-function floodFill(sx, sy) {
-  const w=paintCanvas.width, h=paintCanvas.height;
-  const bdata = baseCtx.getImageData(0,0,w,h).data;
-  const pimg  = paintCtx.getImageData(0,0,w,h);
-  const pd    = pimg.data;
-  const i0    = (sy*w+sx)*4;
-  const tr=bdata[i0],tg=bdata[i0+1],tb=bdata[i0+2];
-  let fhex=curColor.replace('#','');
-  if(fhex.length===3)fhex=fhex.split('').map(c=>c+c).join('');
-  const fn=parseInt(fhex,16);
-  const fr=(fn>>16)&255,fg=(fn>>8)&255,fb=fn&255,fa=Math.round(brushOpa*255);
-  const tol=50, vis=new Uint8Array(w*h), q=[sx+sy*w]; vis[sx+sy*w]=1;
-  let iter=0, max=w*h;
-  while(q.length&&iter++<max){
-    const pos=q.pop(), px=pos%w, py=Math.floor(pos/w), pi=pos*4;
-    pd[pi]=fr;pd[pi+1]=fg;pd[pi+2]=fb;pd[pi+3]=fa;
-    const ns=[px>0?pos-1:-1,px<w-1?pos+1:-1,py>0?pos-w:-1,py<h-1?pos+w:-1];
-    for(const n of ns){
-      if(n<0||vis[n])continue; vis[n]=1;
-      const ni=n*4;
-      if(Math.abs(bdata[ni]-tr)+Math.abs(bdata[ni+1]-tg)+Math.abs(bdata[ni+2]-tb)<=tol)q.push(n);
-    }
-  }
-  paintCtx.putImageData(pimg,0,0);
-  syncReport(); updateSummary();
-}
-
-/* ============================================================
+/* =====================================================
    UNDO / REDO
-   ============================================================ */
-function undo() {
-  if(!undoStack.length){toast('これ以上戻せません');return;}
-  redoStack.push(paintCtx.getImageData(0,0,paintCanvas.width,paintCanvas.height));
-  paintCtx.putImageData(undoStack.pop(),0,0);
+===================================================== */
+function undoAct() {
+  if (!undoStack.length) { toast('これ以上戻せません'); return; }
+  redoStack.push(ctxOverlay.getImageData(0, 0, cW, cH));
+  ctxOverlay.putImageData(undoStack.pop(), 0, 0);
   syncReport(); updateSummary();
 }
-function redo() {
-  if(!redoStack.length){toast('これ以上やり直せません');return;}
-  undoStack.push(paintCtx.getImageData(0,0,paintCanvas.width,paintCanvas.height));
-  paintCtx.putImageData(redoStack.pop(),0,0);
+function redoAct() {
+  if (!redoStack.length) { toast('これ以上やり直せません'); return; }
+  undoStack.push(ctxOverlay.getImageData(0, 0, cW, cH));
+  ctxOverlay.putImageData(redoStack.pop(), 0, 0);
   syncReport(); updateSummary();
 }
-function clearPaint() {
+function clearAll() {
   saveUndo();
-  paintCtx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
-  partColors={};
-  syncReport(); updateSummary();
+  ctxOverlay.clearRect(0, 0, cW, cH);
+  layers.forEach(l => l.color = l.origColor);
+  buildLayerList(); syncReport(); updateSummary();
   toast('塗装をクリアしました');
 }
-
-// Keyboard shortcuts
 document.addEventListener('keydown', e => {
-  const ctrl = e.ctrlKey || e.metaKey;
-  if (ctrl && e.key==='z') { e.preventDefault(); undo(); }
-  if (ctrl && (e.key==='y'||(e.shiftKey&&e.key==='z'))) { e.preventDefault(); redo(); }
+  const c = e.ctrlKey || e.metaKey;
+  if (c && e.key === 'z') { e.preventDefault(); undoAct(); }
+  if (c && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); redoAct(); }
 });
 
-/* ============================================================
-   AI ANALYSIS — 精密カラーセグメンテーション版
-   ============================================================ */
-
-// 各部位のサンプルピクセル座標を記録（AI が返した代表点）
-// region = { id, label, samplePoints:[{x,y}], color, paintColor }
-// samplePoints を起点に類似色フラッドフィルで精密塗装する
-
+/* =====================================================
+   AI — 写真解析 + レイヤー生成
+===================================================== */
 async function runAI() {
-  if (!originalImage) return;
-  if (!API_KEY || !API_KEY.startsWith('sk-')) { openApiModal(); return; }
+  if (!origImg || !API_KEY || !API_KEY.startsWith('sk-')) { openModal(); return; }
 
-  const aibtn  = document.getElementById('ai-btn');
+  const aibtn = document.getElementById('ai-btn');
   const ribbon = document.getElementById('ai-ribbon');
   const lo     = document.getElementById('lo');
   const loMsg  = document.getElementById('lo-msg');
+  const aiMsg  = document.getElementById('ai-msg');
 
   aibtn.disabled = true;
   ribbon.classList.add('show');
   lo.classList.add('show');
-  loMsg.textContent = 'AIが住宅写真を解析中… (10〜20秒かかります)';
+  loMsg.textContent = 'AIが住宅写真を解析中… (約20秒)';
+  aiMsg.textContent  = 'AIが住宅写真を詳細に解析しています…';
 
-  // 解析用に縮小コピーを作る（API送信サイズ削減）
-  const sendW = Math.min(baseCanvas.width, 800);
-  const sendH = Math.round(baseCanvas.height * sendW / baseCanvas.width);
-  const tmpC  = document.createElement('canvas');
-  tmpC.width = sendW; tmpC.height = sendH;
-  tmpC.getContext('2d').drawImage(baseCanvas, 0, 0, sendW, sendH);
-  const b64 = tmpC.toDataURL('image/jpeg', 0.82).split(',')[1];
+  // 送信用縮小画像
+  const sw = Math.min(cW, 800), sh = Math.round(cH * sw / cW);
+  const tmp = document.createElement('canvas'); tmp.width = sw; tmp.height = sh;
+  tmp.getContext('2d').drawImage(cPhoto, 0, 0, sw, sh);
+  const b64 = tmp.toDataURL('image/jpeg', 0.82).split(',')[1];
 
   const prompt = `あなたは住宅外壁塗装の画像解析AIです。
-この住宅写真を詳細に分析し、塗装対象となる各部位の情報をJSONで返してください。
+この住宅写真を精密に分析し、塗装可能な各部位を検出してください。
 
-【検出対象部位】
-- wall（外壁）: 建物の外側の壁面全体
-- roof（屋根）: 屋根部分
-- gutter（雨樋）: 縦樋・横樋
-- fascia（破風板）: 屋根の端の板
-- soffit（軒天井）: 屋根の裏側
-- door（玄関ドア）: 玄関のドア
+【検出対象】
+- wall（外壁）: 建物の壁面
+- roof（屋根）: 屋根全体
+- gutter（雨樋）: 縦樋・横樋・軒樋
+- fascia（破風板）: 屋根端の板
+- soffit（軒天井）: 軒裏
+- door（玄関ドア）: 玄関ドア
 
-【重要な指示】
-各部位について以下を返してください：
-1. 写真内のその部位の「代表的な点」を3〜8点、x・yのパーセント座標(0〜100)で
-2. その部位の現在の色（16進数カラーコード）
-3. 部位が占める大まかな矩形（x,y,width,heightをパーセントで）
-4. 部位の色の均一性（uniform:true/false）
+【各部位について返してください】
+1. 部位が存在する矩形領域（写真全体を100x100グリッドとしたx,y,width,height）
+2. 現在の色（16進数カラーコード）- 実際の写真の色を正確に
+3. 代表的なサンプル点（その部位の典型的な色の座標）を5〜10点
+4. 色の許容差（その部位の色が均一か否か: toleranceを30〜80の数値で）
+5. その部位が窓・植栽など非塗装エリアを含むか（hasExclusions: true/false）
 
-窓・ガラス・植木など塗装しない部分は含めないでください。
-見えない部位も含めないでください。
-
-必ずこのJSON形式のみで返答（前置き・説明文不要）：
+JSON形式のみで返答（説明文不要）：
 {
   "regions": [
     {
       "id": "wall",
       "label": "外壁",
       "color": "#E8DCC8",
-      "rect": {"x":8,"y":35,"width":84,"height":52},
-      "points": [{"x":25,"y":50},{"x":50,"y":55},{"x":75,"y":50},{"x":25,"y":70},{"x":75,"y":70}],
-      "uniform": true
+      "rect": {"x":8,"y":38,"width":84,"height":50},
+      "samples": [{"x":20,"y":50},{"x":50,"y":55},{"x":75,"y":50},{"x":20,"y":70},{"x":75,"y":70}],
+      "tolerance": 55,
+      "hasExclusions": true
     }
   ]
 }`;
@@ -1195,15 +742,11 @@ async function runAI() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
-            { type: 'text', text: prompt }
-          ]
-        }]
+        model: 'claude-sonnet-4-20250514', max_tokens: 2000,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
+          { type: 'text', text: prompt }
+        ]}]
       })
     });
 
@@ -1213,24 +756,36 @@ async function runAI() {
     const m    = txt.match(/\{[\s\S]*"regions"[\s\S]*\}/);
     if (!m) throw new Error('AI応答からデータを読み取れませんでした');
 
-    const parsed = JSON.parse(m[0]);
-    aiRegions = parsed.regions || [];
+    const parsed  = JSON.parse(m[0]);
+    const regions = parsed.regions || [];
 
-    loMsg.textContent = `${aiRegions.length}部位を認識。精密に塗り分け中…`;
+    loMsg.textContent = `${regions.length}部位を認識。マスクを生成中…`;
 
-    // 各部位をフラッドフィルで精密塗装
+    // レイヤーを生成
+    layers = [];
     saveUndo();
-    paintCtx.clearRect(0, 0, paintCanvas.width, paintCanvas.height);
+    ctxOverlay.clearRect(0, 0, cW, cH);
 
-    for (const r of aiRegions) {
-      await paintRegionPrecise(r);
-      partColors[r.label] = { color: r.color, name: r.label };
+    for (const r of regions) {
+      loMsg.textContent = `「${r.label}」のマスクを生成中…`;
+      const mask = buildMask(r);
+      layers.push({
+        id: r.id, label: r.label,
+        color: r.color, origColor: r.color,
+        mask: mask,
+        rect: r.rect,
+        samples: r.samples,
+        tolerance: r.tolerance || 50
+      });
+      // オーバーレイに現在色で描画
+      drawLayerToOverlay(layers[layers.length - 1]);
     }
 
-    buildRegionPanel();
-    document.getElementById('regions-section').style.display = 'block';
+    buildLayerList();
+    document.getElementById('layers-sec').style.display = 'block';
+    document.getElementById('brush-sec').style.display = 'block';
     syncReport(); updateSummary();
-    toast(`✅ ${aiRegions.length}部位を精密に塗り分けました！右パネルから色を変更できます`, 'ok');
+    toast(`✅ ${layers.length}部位のレイヤーを生成しました！部位名をタップして色を変更できます`, 'ok');
 
   } catch (err) {
     console.error(err);
@@ -1242,244 +797,238 @@ async function runAI() {
   }
 }
 
-/* -------------------------------------------------------
-   精密フラッドフィル塗装
-   AI が返した代表点を起点に、色の近いピクセルを
-   スマートフラッドフィルで塗りつぶす
-------------------------------------------------------- */
-function paintRegionPrecise(region) {
-  return new Promise(resolve => {
-    const W = paintCanvas.width, H = paintCanvas.height;
-    const baseData = baseCtx.getImageData(0, 0, W, H).data;
-    const paintImg = paintCtx.getImageData(0, 0, W, H);
-    const pd = paintImg.data;
+/* =====================================================
+   MASK GENERATION
+   AI の rect + samples + tolerance を使って
+   その部位のピクセルマスクを生成する
+===================================================== */
+function buildMask(region) {
+  const baseData = ctxPhoto.getImageData(0, 0, cW, cH).data;
+  const mask = new Uint8Array(cW * cH); // 1 = この部位に属する
 
-    // 塗装色をRGBAに変換
-    let fhex = region.color.replace('#','');
-    if (fhex.length === 3) fhex = fhex.split('').map(c=>c+c).join('');
-    const fn = parseInt(fhex, 16);
-    const fr=(fn>>16)&255, fg=(fn>>8)&255, fb=fn&255;
-    const fa = Math.round(0.72 * 255); // 不透明度72%
+  const rect = region.rect || {x:0, y:0, width:100, height:100};
+  const x0 = Math.round(rect.x / 100 * cW);
+  const y0 = Math.round(rect.y / 100 * cH);
+  const x1 = Math.min(cW, Math.round((rect.x + rect.width)  / 100 * cW));
+  const y1 = Math.min(cH, Math.round((rect.y + rect.height) / 100 * cH));
 
-    // 矩形内のピクセルに対して色類似度フィルタで塗装
-    const rect = region.rect || {x:0,y:0,width:100,height:100};
-    const rx0 = Math.round(rect.x/100*W);
-    const ry0 = Math.round(rect.y/100*H);
-    const rx1 = Math.min(W, Math.round((rect.x+rect.width)/100*W));
-    const ry1 = Math.min(H, Math.round((rect.y+rect.height)/100*H));
+  // サンプル点から基準色を集める
+  const samples = region.samples || [];
+  const refs = [];
+  for (const s of samples) {
+    const px = Math.round(s.x / 100 * cW);
+    const py = Math.round(s.y / 100 * cH);
+    if (px >= 0 && px < cW && py >= 0 && py < cH) {
+      const i = (py * cW + px) * 4;
+      refs.push([baseData[i], baseData[i+1], baseData[i+2]]);
+    }
+  }
+  if (refs.length === 0) {
+    const cx = Math.round((x0+x1)/2), cy = Math.round((y0+y1)/2);
+    const i = (cy * cW + cx) * 4;
+    refs.push([baseData[i], baseData[i+1], baseData[i+2]]);
+  }
 
-    // 代表点から基準色を収集
-    const points = region.points || [];
-    const refColors = [];
-    for (const p of points) {
-      const px = Math.round(p.x/100*W);
-      const py = Math.round(p.y/100*H);
-      if (px>=0 && px<W && py>=0 && py<H) {
-        const i = (py*W+px)*4;
-        refColors.push([baseData[i], baseData[i+1], baseData[i+2]]);
+  // 基準色の平均
+  const avgR = refs.reduce((s,c) => s+c[0], 0) / refs.length;
+  const avgG = refs.reduce((s,c) => s+c[1], 0) / refs.length;
+  const avgB = refs.reduce((s,c) => s+c[2], 0) / refs.length;
+  const tol  = region.tolerance || 55;
+
+  // 矩形内でサンプル色に近いピクセルをマスク
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const i = (y * cW + x) * 4;
+      const dr = baseData[i]   - avgR;
+      const dg = baseData[i+1] - avgG;
+      const db = baseData[i+2] - avgB;
+      if (Math.sqrt(dr*dr + dg*dg + db*db) <= tol) {
+        mask[y * cW + x] = 1;
       }
     }
-
-    if (refColors.length === 0) {
-      // 代表点がなければ矩形中央を使う
-      const cx = Math.round((rx0+rx1)/2), cy = Math.round((ry0+ry1)/2);
-      const i  = (cy*W+cx)*4;
-      refColors.push([baseData[i], baseData[i+1], baseData[i+2]]);
-    }
-
-    // 基準色の平均を求める
-    const avgR = refColors.reduce((s,c)=>s+c[0],0)/refColors.length;
-    const avgG = refColors.reduce((s,c)=>s+c[1],0)/refColors.length;
-    const avgB = refColors.reduce((s,c)=>s+c[2],0)/refColors.length;
-
-    // 許容色差（部位により調整）
-    const tol = region.uniform ? 55 : 75;
-
-    // 矩形内を走査して類似色ピクセルを塗装
-    let painted = 0;
-    for (let y = ry0; y < ry1; y++) {
-      for (let x = rx0; x < rx1; x++) {
-        const i = (y*W+x)*4;
-        const dr = baseData[i]  - avgR;
-        const dg = baseData[i+1]- avgG;
-        const db = baseData[i+2]- avgB;
-        const dist = Math.sqrt(dr*dr + dg*dg + db*db);
-        if (dist <= tol) {
-          pd[i]   = fr;
-          pd[i+1] = fg;
-          pd[i+2] = fb;
-          pd[i+3] = fa;
-          painted++;
-        }
-      }
-    }
-
-    paintCtx.putImageData(paintImg, 0, 0);
-
-    // ラベルを中央に描画
-    const cx = Math.round((rx0+rx1)/2);
-    const cy = Math.round((ry0+ry1)/2);
-    paintCtx.save();
-    paintCtx.font = `bold ${Math.max(12, Math.round((ry1-ry0)*0.12))}px sans-serif`;
-    paintCtx.fillStyle = 'rgba(255,255,255,0.9)';
-    paintCtx.textAlign = 'center';
-    paintCtx.textBaseline = 'middle';
-    // テキスト背景
-    const tw = paintCtx.measureText(region.label).width;
-    paintCtx.fillStyle = 'rgba(0,0,0,0.35)';
-    paintCtx.fillRect(cx-tw/2-6, cy-10, tw+12, 20);
-    paintCtx.fillStyle = 'rgba(255,255,255,0.95)';
-    paintCtx.fillText(region.label, cx, cy);
-    paintCtx.restore();
-
-    resolve();
-  });
+  }
+  return mask;
 }
 
-function buildRegionPanel() {
-  const list = document.getElementById('region-list');
+/* =====================================================
+   DRAW LAYER TO OVERLAY
+===================================================== */
+function drawLayerToOverlay(layer) {
+  if (!layer.mask) return;
+  // layer.color を RGBA に変換
+  let hex = layer.color.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex, 16);
+  const fr=(n>>16)&255, fg=(n>>8)&255, fb=n&255, fa=Math.round(0.70*255);
+
+  const imgData = ctxOverlay.getImageData(0, 0, cW, cH);
+  const d = imgData.data;
+  for (let i = 0; i < layer.mask.length; i++) {
+    if (layer.mask[i]) {
+      const p = i * 4;
+      d[p]=fr; d[p+1]=fg; d[p+2]=fb; d[p+3]=fa;
+    }
+  }
+  ctxOverlay.putImageData(imgData, 0, 0);
+}
+
+/* =====================================================
+   REDRAW ALL LAYERS
+===================================================== */
+function redrawAllLayers() {
+  ctxOverlay.clearRect(0, 0, cW, cH);
+  for (const layer of layers) drawLayerToOverlay(layer);
+}
+
+/* =====================================================
+   LAYER LIST PANEL
+===================================================== */
+function buildLayerList() {
+  const list = document.getElementById('layer-list');
   list.innerHTML = '';
-  aiRegions.forEach((r, i) => {
+  layers.forEach((l, i) => {
     const el = document.createElement('div');
-    el.className = 'reg-item'; el.id = 'ri-' + i;
+    el.className = 'layer-item' + (i === activeLayerIdx ? ' active' : '');
+    el.id = 'li-' + i;
     el.innerHTML = `
-      <div class="reg-dot" id="rdot-${i}" style="background:${r.color};"></div>
-      <div class="reg-lbl">${r.label}</div>
-      <div class="reg-code" id="rcode-${i}">${r.color.toUpperCase()}</div>
+      <div class="li-color" id="lc-${i}" style="background:${l.color}"></div>
+      <div class="li-name">${l.label}</div>
+      <div class="li-orig">${l.color.toUpperCase()}</div>
+      <div class="li-actions">
+        <button class="li-act-btn" onclick="applyColorToLayer(${i});event.stopPropagation()">色を変更</button>
+      </div>
     `;
-    el.onclick = () => applyRegion(i);
+    el.onclick = () => selectLayer(i);
     list.appendChild(el);
   });
 }
 
-async function applyRegion(i) {
-  const r = aiRegions[i];
-  saveUndo();
-
-  // 選択部位のエリアをクリアして再塗装
-  const W = paintCanvas.width, H = paintCanvas.height;
-  const rect = r.rect || {x:0,y:0,width:100,height:100};
-  const rx0 = Math.round(rect.x/100*W);
-  const ry0 = Math.round(rect.y/100*H);
-  const rx1 = Math.min(W, Math.round((rect.x+rect.width)/100*W));
-  const ry1 = Math.min(H, Math.round((rect.y+rect.height)/100*H));
-
-  // その部位エリアのペイントをクリア
-  paintCtx.clearRect(rx0, ry0, rx1-rx0, ry1-ry0);
-
-  // 新しい色で再塗装
-  const prevColor = r.color;
-  aiRegions[i].color = curColor;
-  await paintRegionPrecise(aiRegions[i]);
-
-  // パネル更新
-  document.getElementById('rdot-'+i).style.background  = curColor;
-  document.getElementById('rcode-'+i).textContent      = curColor.toUpperCase();
-  document.querySelectorAll('.reg-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('ri-'+i).classList.add('active');
-  partColors[r.label] = { color: curColor, name: curColorName };
-
-  syncReport(); updateSummary();
-  toast(`${r.label} → ${curColorName}`);
+function selectLayer(i) {
+  activeLayerIdx = i;
+  document.querySelectorAll('.layer-item').forEach((el, idx) => el.classList.toggle('active', idx === i));
+  toast(`「${layers[i].label}」を選択 — 色変更ボタンまたはブラシで調整できます`);
 }
 
-/* ============================================================
-   SUMMARY BAR
-   ============================================================ */
+async function applyColorToLayer(i) {
+  if (!origImg) return;
+  const layer = layers[i];
+  saveUndo();
+
+  // マスクを使って対象部位を新色で上書き
+  let hex = curColor.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex, 16);
+  const fr=(n>>16)&255, fg=(n>>8)&255, fb=n&255, fa=Math.round(0.70*255);
+
+  const imgData = ctxOverlay.getImageData(0, 0, cW, cH);
+  const d = imgData.data;
+
+  // まずこのレイヤーの古い色を消す（マスク領域をクリア）
+  const oldHex = layer.color.replace('#','');
+  const oldN = parseInt(oldHex.length===3 ? oldHex.split('').map(c=>c+c).join('') : oldHex, 16);
+  const or=(oldN>>16)&255, og=(oldN>>8)&255, ob=oldN&255;
+
+  for (let p = 0; p < layer.mask.length; p++) {
+    if (layer.mask[p]) {
+      const idx = p * 4;
+      d[idx]=fr; d[idx+1]=fg; d[idx+2]=fb; d[idx+3]=fa;
+    }
+  }
+  ctxOverlay.putImageData(imgData, 0, 0);
+
+  // 状態更新
+  layer.color = curColor;
+  document.getElementById('lc-'+i).style.background = curColor;
+  document.getElementById('li-'+i).querySelector('.li-orig').textContent = curColor.toUpperCase();
+  selectLayer(i);
+  syncReport(); updateSummary();
+  toast(`✅ ${layer.label} → ${curColorName}`);
+}
+
+/* =====================================================
+   SUMMARY + SPEC
+===================================================== */
 function updateSummary() {
-  const bar = document.getElementById('summary-bar');
-  bar.innerHTML = '<span class="sum-label">配色</span>';
-  const entries = Object.entries(partColors);
-  if (!entries.length) {
-    bar.innerHTML += '<span style="font-size:10px;color:var(--text3);">塗装すると自動表示されます</span>';
+  const bar = document.getElementById('sum-bar');
+  bar.innerHTML = '<span class="sum-lbl">配色</span>';
+  const colored = layers.filter(l => l.color !== l.origColor);
+  if (!colored.length && !layers.length) {
+    bar.innerHTML += '<span style="font-size:10px;color:var(--tx3)">写真をアップロードすると表示されます</span>';
   } else {
-    entries.forEach(([lbl,{color}]) => {
-      const c=document.createElement('div');
-      c.className='sum-chip';
-      c.innerHTML=`<div class="sum-dot" style="background:${color};"></div><span style="color:var(--text2);font-weight:600;">${lbl}</span><span style="font-family:monospace;font-size:9px;color:var(--text3);">${color.toUpperCase()}</span>`;
+    const show = layers.length ? layers : [];
+    show.forEach(l => {
+      const c = document.createElement('div'); c.className = 'sum-chip';
+      c.innerHTML = `<div class="sum-dot" style="background:${l.color}"></div><span style="color:var(--tx2);font-weight:600">${l.label}</span><span style="font-family:monospace;font-size:9px;color:var(--tx3)">${l.color.toUpperCase()}</span>`;
       bar.appendChild(c);
     });
   }
   updateSpecRows();
 }
-
 function updateSpecRows() {
   const box = document.getElementById('spec-rows');
+  if (!layers.length) { box.innerHTML = '<div class="spec-row" style="color:var(--tx3);font-size:11px;padding:9px 11px">塗装データなし</div>'; return; }
   box.innerHTML = '';
-  const entries = Object.entries(partColors);
-  if (!entries.length) {
-    box.innerHTML = '<div class="spec-row" style="color:var(--text3);font-size:11px;padding:9px 11px;">塗装データなし</div>';
-    return;
-  }
-  entries.forEach(([lbl,{color}]) => {
-    const r=document.createElement('div'); r.className='spec-row';
-    r.innerHTML=`<div class="spec-dot" style="background:${color};"></div><div class="spec-part">${lbl}</div><div class="spec-code">${color.toUpperCase()}</div>`;
+  layers.forEach(l => {
+    const r = document.createElement('div'); r.className = 'spec-row';
+    r.innerHTML = `<div class="spec-dot" style="background:${l.color}"></div><div class="spec-part">${l.label}</div><div class="spec-code">${l.color.toUpperCase()}</div>`;
     box.appendChild(r);
   });
 }
 
-/* ============================================================
+/* =====================================================
    REPORT SYNC
-   ============================================================ */
+===================================================== */
 function syncReport() {
-  if (!originalImage) return;
+  if (!origImg) return;
   ['before','after'].forEach(type => {
-    const box    = document.getElementById('ba-'+type+'-box');
-    const canvas = document.getElementById('rpt-'+type);
-    const bw     = box.clientWidth  || 360;
-    const bh     = box.clientHeight || 270;
-    canvas.width  = bw; canvas.height = bh;
+    const box    = document.getElementById('ba-' + type + '-box');
+    const canvas = document.getElementById('rpt-' + type);
+    const bw = box.clientWidth || 340, bh = box.clientHeight || 255;
+    canvas.width = bw; canvas.height = bh;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(originalImage, 0,0, bw,bh);
-    if (type==='after' && paintCanvas.width>0) {
-      ctx.drawImage(paintCanvas,0,0,paintCanvas.width,paintCanvas.height,0,0,bw,bh);
+    ctx.drawImage(cPhoto, 0, 0, cW, cH, 0, 0, bw, bh);
+    if (type === 'after' && cW > 0) {
+      ctx.drawImage(cOverlay, 0, 0, cW, cH, 0, 0, bw, bh);
     }
   });
 }
 
-/* ============================================================
+/* =====================================================
    PDF
-   ============================================================ */
+===================================================== */
 function savePDF() {
   syncReport();
-  const el  = document.getElementById('report-sheet');
   const opt = {
-    margin:0, filename:'外壁塗装カラー提案書.pdf',
-    image:{type:'jpeg',quality:0.96},
-    html2canvas:{scale:2,useCORS:true,logging:false,allowTaint:true},
-    jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},
+    margin: 0, filename: '外壁塗装カラー提案書.pdf',
+    image: { type: 'jpeg', quality: 0.96 },
+    html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
   };
   toast('PDFを生成しています…');
-  html2pdf().set(opt).from(el).save()
-    .then(()=>toast('✅ PDFを保存しました','ok'))
-    .catch(e=>toast('PDFエラー: '+e.message,'err'));
+  html2pdf().set(opt).from(document.getElementById('report-sheet')).save()
+    .then(() => toast('✅ PDFを保存しました', 'ok'))
+    .catch(e => toast('PDFエラー: ' + e.message, 'err'));
 }
 
-/* ============================================================
+/* =====================================================
    TOAST
-   ============================================================ */
-function toast(msg, type='') {
-  const t=document.getElementById('toast');
-  t.textContent=msg;
-  t.className='toast show'+(type?' '+type:'');
-  clearTimeout(t._t);
-  t._t=setTimeout(()=>t.classList.remove('show'),2800);
+===================================================== */
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-/* ============================================================
+/* =====================================================
    INIT
-   ============================================================ */
+===================================================== */
 (function init() {
   const d = new Date();
   document.getElementById('r-date').placeholder = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
-  pickColor('#F5F0DC','アイボリー');
+  pickColor('#F5F0DC', 'アイボリー');
   updateApiStatus();
-  window.addEventListener('resize', ()=>{ if(originalImage) syncReport(); });
-
-  // Show API modal on first visit if no key saved
-  if (!API_KEY) {
-    setTimeout(() => openApiModal(), 600);
-  }
+  window.addEventListener('resize', () => { if (origImg) syncReport(); });
+  if (!API_KEY) setTimeout(() => openModal(), 800);
 })();
 </script>
 </body>
