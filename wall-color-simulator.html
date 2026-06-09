@@ -100,10 +100,15 @@ button,input,select,textarea{font-family:inherit}
 .color-hex-inp:focus{border-color:var(--acc)}
 .color-picker-inp{width:0;height:0;opacity:0;position:absolute}
 
-.palette-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:10px}
-.pal-sw{aspect-ratio:1;border-radius:5px;cursor:pointer;border:2px solid transparent;transition:transform .14s,border-color .14s;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.palette-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:4px}
+.pal-sw{aspect-ratio:1;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:transform .14s,border-color .14s;box-shadow:0 1px 4px rgba(0,0,0,.3);position:relative}
 .pal-sw:hover{transform:scale(1.12)}
 .pal-sw.sel{border-color:#fff;transform:scale(1.12)}
+.pal-sw::after{content:attr(data-name);position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#111;color:#fff;font-size:9px;padding:3px 7px;border-radius:3px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;z-index:50}
+.pal-sw:hover::after{opacity:1}
+.palette-scroll{max-height:200px;overflow-y:auto;padding-right:2px}
+.palette-scroll::-webkit-scrollbar{width:3px}
+.palette-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
 .apply-btn{width:100%;background:linear-gradient(135deg,var(--acc),var(--purple));color:#fff;border:none;border-radius:var(--rs);padding:11px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;transition:filter .15s,transform .1s;display:flex;align-items:center;justify-content:center;gap:7px}
 .apply-btn:hover{filter:brightness(1.1)}
@@ -266,19 +271,53 @@ button,input,select,textarea{font-family:inherit}
     <div class="rp-title"><div class="rp-title-dot" style="background:var(--purple)"></div>カラー設定</div>
 
     <div class="color-display">
-      <div class="color-swatch-big" id="color-swatch-big" style="background:#F5F0DC" onclick="document.getElementById('color-picker-inp').click()"></div>
-      <input type="color" class="color-picker-inp" id="color-picker-inp" value="#F5F0DC" oninput="onColorPicker(this.value)">
-      <input type="text" class="color-hex-inp" id="color-hex-inp" value="#F5F0DC" maxlength="7" placeholder="#RRGGBB" oninput="onHexInput(this.value)">
+      <div class="color-swatch-big" id="color-swatch-big" style="background:#F0EDE0" onclick="document.getElementById('color-picker-inp').click()"></div>
+      <input type="color" class="color-picker-inp" id="color-picker-inp" value="#F0EDE0" oninput="onColorPicker(this.value)">
+      <div style="flex:1">
+        <input type="text" class="color-hex-inp" id="color-hex-inp" value="#F0EDE0" maxlength="7" placeholder="#RRGGBB" oninput="onHexInput(this.value)" style="width:100%;margin-bottom:4px">
+        <div id="color-name-disp" style="font-size:10px;color:var(--tx2);padding:0 2px">ミストホワイト</div>
+      </div>
     </div>
 
-    <!-- Preset palette -->
-    <div class="palette-grid" id="palette-grid"></div>
+    <!-- Palette tabs -->
+    <div style="display:flex;gap:4px;margin-bottom:8px">
+      <button id="tab-wall" onclick="switchTab('wall')" style="flex:1;background:var(--acc);color:#fff;border:none;border-radius:var(--rs);padding:6px;font-size:10px;font-weight:700;cursor:pointer">外壁用 72色</button>
+      <button id="tab-roof" onclick="switchTab('roof')" style="flex:1;background:var(--panel2);color:var(--tx2);border:1px solid var(--border);border-radius:var(--rs);padding:6px;font-size:10px;font-weight:700;cursor:pointer">屋根用 46色</button>
+      <button id="tab-custom" onclick="switchTab('custom')" style="flex:1;background:var(--panel2);color:var(--tx2);border:1px solid var(--border);border-radius:var(--rs);padding:6px;font-size:10px;font-weight:700;cursor:pointer">カスタム</button>
+    </div>
+
+    <!-- Wall palette -->
+    <div id="pal-wall" class="palette-scroll">
+      <div style="font-size:9px;color:var(--tx3);margin-bottom:5px;letter-spacing:.06em">■ DT シリーズ（外壁色見本 42色）</div>
+      <div class="palette-grid" id="palette-grid-wall-dt"></div>
+      <div style="font-size:9px;color:var(--tx3);margin:8px 0 5px;letter-spacing:.06em">■ SC シリーズ・外壁用（ハイフッ素 30色）</div>
+      <div class="palette-grid" id="palette-grid-wall-sc"></div>
+    </div>
+
+    <!-- Roof palette -->
+    <div id="pal-roof" class="palette-scroll" style="display:none">
+      <div style="font-size:9px;color:var(--tx3);margin-bottom:5px;letter-spacing:.06em">■ RC シリーズ（Roof color Best Selection 24色）</div>
+      <div class="palette-grid" id="palette-grid-roof-rc"></div>
+      <div style="font-size:9px;color:var(--tx3);margin:8px 0 5px;letter-spacing:.06em">■ SC シリーズ・屋根用（ハイフッ素 22色）</div>
+      <div class="palette-grid" id="palette-grid-roof-sc"></div>
+    </div>
+
+    <!-- Custom palette -->
+    <div id="pal-custom" style="display:none">
+      <div style="font-size:10px;color:var(--tx2);margin-bottom:6px">カラーピッカーまたはHEX値で自由に指定</div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+        <input type="color" id="custom-picker" value="#F0EDE0" oninput="onColorPicker(this.value)" style="width:44px;height:36px;border:none;background:none;cursor:pointer;border-radius:4px">
+        <input type="text" id="custom-hex-inp" value="#F0EDE0" maxlength="7" placeholder="#RRGGBB" oninput="onHexInput(this.value)" style="flex:1;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:7px 10px;font-size:13px;font-family:monospace;color:var(--tx);outline:none">
+      </div>
+      <div style="font-size:9px;color:var(--tx3);margin-bottom:5px">最近使った色</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap" id="recent-colors"></div>
+    </div>
 
     <!-- Blend mode & opacity -->
-    <div class="blend-row">
+    <div class="blend-row" style="margin-top:8px">
       <label>合成モード</label>
       <select class="blend-sel" id="blend-mode" onchange="updatePreview()">
-        <option value="multiply" selected>乗算（影を保持）</option>
+        <option value="multiply" selected>乗算（影・質感を保持）</option>
         <option value="color">カラー（自然な色替え）</option>
         <option value="hue">色相</option>
         <option value="source-over">通常（べた塗り）</option>
@@ -907,38 +946,228 @@ function invertSelection() {
 /* =====================================================
    COLOR
 ===================================================== */
-const PALETTE = [
-  ['#FFFFFF','#F5F5F0','#F5F0DC','#E8DCC8','#E0D0B0','#C8A878'],
-  ['#A07850','#7A5840','#6A4828','#4A3020','#3A2818','#1A1008'],
-  ['#E8E8E8','#C0C0C0','#909090','#707070','#484848','#282828'],
-  ['#708090','#506070','#384858','#284060','#1A2840','#0C1828'],
-  ['#D4E8D0','#90C890','#508050','#386038','#204020','#102010'],
-  ['#E8D0C0','#D0A080','#B87050','#904030','#682020','#401010'],
+/* =====================================================
+   COLOR DATA — 実際の塗料色見本
+===================================================== */
+
+// ===== 外壁用 DT シリーズ 42色 =====
+const WALL_DT = [
+  {code:'DT-N87',  name:'ミストホワイト',      hex:'#F0EDE0'},
+  {code:'DT-N80',  name:'シルバースター',       hex:'#D8D8D8'},
+  {code:'DT-N70',  name:'マウンティングレー',   hex:'#B8B8B8'},
+  {code:'DT-1585A',name:'チェリーホワイト',     hex:'#EDE8E0'},
+  {code:'DT-1780A',name:'ホワイトパープル',     hex:'#E8E4EC'},
+  {code:'DT-1575A',name:'アッシュロース',       hex:'#E8DDD8'},
+  {code:'DT-1990A',name:'ウォームホワイト',     hex:'#F0EDE4'},
+  {code:'DT-1985B',name:'ペールアイボリー',     hex:'#F0EAD8'},
+  {code:'DT-1980B',name:'エクルベージュ',       hex:'#E8D8C0'},
+  {code:'DT-2290C',name:'ホットミルク',         hex:'#F0E8D0'},
+  {code:'DT-2285C',name:'ライトアイボリー',     hex:'#EEE8D0'},
+  {code:'DT-2280A',name:'モーニングブラウ',     hex:'#D8CCAC'},
+  {code:'DT-2580A',name:'スノーホワイト',       hex:'#F4F4F0'},
+  {code:'DT-2585B',name:'エーデルワイス',       hex:'#EAE8DC'},
+  {code:'DT-2980B',name:'ペールグリーン',       hex:'#DDE8D8'},
+  {code:'DT-5580A',name:'アイスブルー',         hex:'#C8D8E0'},
+  {code:'DT-6570A',name:'アッシュグレー',       hex:'#A0A8B0'},
+  {code:'DT-6550D',name:'アクアマリン',         hex:'#5A8090'},
+  {code:'DT-2175D',name:'サンドベージュ',       hex:'#C8B898'},
+  {code:'DT-2275F',name:'ブロンズアイビー',     hex:'#9A8870'},
+  {code:'DT-2160D',name:'カフェオレブラウン',   hex:'#A08060'},
+  {code:'DT-7560B',name:'クラウドグレー',       hex:'#9098A8'},
+  {code:'DT-N50',  name:'ソリッドグレー',       hex:'#787878'},
+  {code:'DT-1530B',name:'デミグラスブラウン',   hex:'#302820'},
+  {code:'DT-1770B',name:'ラベンダーグレー',     hex:'#A8A0B0'},
+  {code:'DT-1560D',name:'チャームブラウン',     hex:'#A09080'},
+  {code:'DT-1750D',name:'アッシュブラウン',     hex:'#807060'},
+  {code:'DT-1975D',name:'ミルクティー',         hex:'#C8B8A0'},
+  {code:'DT-1960C',name:'クリーミーショコラ',   hex:'#B09880'},
+  {code:'DT-1950A',name:'ナイトフォグ',         hex:'#686870'},
+  {code:'DT-2270B',name:'シルバーブラウン',     hex:'#A09888'},
+  {code:'DT-2260B',name:'マカロンモカ',         hex:'#B8A890'},
+  {code:'DT-1940B',name:'チャコールグラファイト',hex:'#484848'},
+  {code:'DT-2770D',name:'ウグイス',             hex:'#909870'},
+  {code:'DT-2170F',name:'クラウディキャメル',   hex:'#C0A878'},
+  {code:'DT-2250D',name:'ココアブラウン',       hex:'#806050'},
+  {code:'DT-1780D',name:'ベビーピンク',         hex:'#F0D8D0'},
+  {code:'DT-2170H',name:'シャインマスタード',   hex:'#C8A840'},
+  {code:'DT-1560F',name:'ラセットブラウン',     hex:'#986050'},
+  {code:'DT-1760F',name:'オータムリーフ',       hex:'#A07040'},
+  {code:'DT-1975L',name:'パンプキンイエロー',   hex:'#D8A040'},
+  {code:'DT-1570H',name:'フラミンゴフェザー',   hex:'#D89080'},
 ];
 
+// ===== 外壁用 SC シリーズ 30色（ハイフッ素上部） =====
+const WALL_SC = [
+  {code:'SC-01', name:'SC-01', hex:'#F5F0E0'},
+  {code:'SC-02', name:'SC-02', hex:'#F0E8D0'},
+  {code:'SC-03', name:'SC-03', hex:'#EDE8DC'},
+  {code:'SC-04', name:'SC-04', hex:'#ECE8E0'},
+  {code:'SC-05', name:'SC-05', hex:'#F0EEE8'},
+  {code:'SC-06', name:'SC-06', hex:'#E8E0D0'},
+  {code:'SC-07', name:'SC-07', hex:'#E0D8C0'},
+  {code:'SC-08', name:'SC-08', hex:'#E8D8C8'},
+  {code:'SC-09', name:'SC-09', hex:'#E8E4DC'},
+  {code:'SC-10', name:'SC-10', hex:'#DCDCD8'},
+  {code:'SC-11', name:'SC-11', hex:'#D8C8B0'},
+  {code:'SC-12', name:'SC-12', hex:'#D4C0A0'},
+  {code:'SC-13', name:'SC-13', hex:'#E0C8B8'},
+  {code:'SC-14', name:'SC-14', hex:'#E0E0D8'},
+  {code:'SC-15', name:'SC-15', hex:'#D0D0CC'},
+  {code:'SC-16', name:'SC-16', hex:'#E0D890'},
+  {code:'SC-17', name:'SC-17', hex:'#C8A878'},
+  {code:'SC-18', name:'SC-18', hex:'#B8A888'},
+  {code:'SC-19', name:'SC-19', hex:'#A8A898'},
+  {code:'SC-20', name:'SC-20', hex:'#A0A0A0'},
+  {code:'SC-21', name:'SC-21', hex:'#C8B098'},
+  {code:'SC-22', name:'SC-22', hex:'#B09878'},
+  {code:'SC-23', name:'SC-23', hex:'#A89080'},
+  {code:'SC-24', name:'SC-24', hex:'#909090'},
+  {code:'SC-25', name:'SC-25', hex:'#808888'},
+  {code:'SC-26', name:'SC-26', hex:'#C8D0B8'},
+  {code:'SC-27', name:'SC-27', hex:'#A0A890'},
+  {code:'SC-28', name:'SC-28', hex:'#C8D8D8'},
+  {code:'SC-29', name:'SC-29', hex:'#B8C8C8'},
+  {code:'SC-30', name:'SC-30', hex:'#C8D8E8'},
+];
+
+// ===== 屋根用 RC シリーズ 24色（Roof color Best Selection 24） =====
+const ROOF_RC = [
+  {code:'RC-140', name:'コーラルオレンジ',  hex:'#D84820'},
+  {code:'RC-111', name:'レディシュオレンジ', hex:'#A03820'},
+  {code:'RC-101', name:'ブリックレッド',    hex:'#882020'},
+  {code:'RC-112', name:'マルーン',          hex:'#501018'},
+  {code:'RC-141', name:'キャメルイエロー',  hex:'#C08020'},
+  {code:'RC-117', name:'アースブラウン',    hex:'#806040'},
+  {code:'RC-118', name:'ブラウン',          hex:'#704030'},
+  {code:'RC-113', name:'チョコレート',      hex:'#401818'},
+  {code:'RC-102', name:'チェスナットブラウン',hex:'#602818'},
+  {code:'RC-108', name:'アイビーブラウン',  hex:'#503828'},
+  {code:'RC-119', name:'チャコールグレー',  hex:'#686868'},
+  {code:'RC-103', name:'ココナッツブラウン',hex:'#281008'},
+  {code:'RC-106', name:'グレー',            hex:'#808080'},
+  {code:'RC-107', name:'ミッドナイトグレー',hex:'#404858'},
+  {code:'RC-120', name:'ナチュラルグレー',  hex:'#585858'},
+  {code:'RC-121', name:'セピアブラウン',    hex:'#201818'},
+  {code:'RC-104', name:'グリーン',          hex:'#284830'},
+  {code:'RC-142', name:'フォレストグリーン',hex:'#204028'},
+  {code:'RC-114', name:'ディープグリーン',  hex:'#183020'},
+  {code:'RC-109', name:'ダークグリーン',    hex:'#182818'},
+  {code:'RC-105', name:'ディープブルー',    hex:'#1A2850'},
+  {code:'RC-115', name:'サックスブルー',    hex:'#1A3868'},
+  {code:'RC-116', name:'ウルトラマリーン',  hex:'#1A2860'},
+  {code:'RC-110', name:'スレートブラック',  hex:'#181C20'},
+];
+
+// ===== 屋根用 SC シリーズ 22色（ハイフッ素下部） =====
+const ROOF_SC = [
+  {code:'SC-33', name:'ノースオレンジ',  hex:'#C85020'},
+  {code:'SC-34', name:'ノースブラウン',  hex:'#603020'},
+  {code:'SC-35', name:'オリーブグリーン',hex:'#2A5030'},
+  {code:'SC-36', name:'ナイスブルー',    hex:'#1A3870'},
+  {code:'SC-37', name:'ニューグレー',    hex:'#707878'},
+  {code:'SC-38', name:'ワインレッド',    hex:'#702020'},
+  {code:'SC-39', name:'ニューワイン',    hex:'#501820'},
+  {code:'SC-40', name:'ダークグリーン',  hex:'#1A3820'},
+  {code:'SC-41', name:'セリアンブルー',  hex:'#1A4060'},
+  {code:'SC-42', name:'ナチュラルグレー',hex:'#686868'},
+  {code:'SC-43', name:'ローヤルレッド',  hex:'#882020'},
+  {code:'SC-44', name:'コーヒーブラウン',hex:'#402010'},
+  {code:'SC-45', name:'ディープグリーン',hex:'#1A3018'},
+  {code:'SC-46', name:'マリンブルー',    hex:'#102848'},
+  {code:'SC-47', name:'ダークグレー',    hex:'#404040'},
+  {code:'SC-48', name:'チャコールグレー',hex:'#303030'},
+  {code:'SC-49', name:'ブラック',        hex:'#181818'},
+  {code:'SC-50', name:'スレートブラック',hex:'#202428'},
+  {code:'SC-51', name:'ナスコン',        hex:'#181830'},
+  {code:'SC-52', name:'スカイブルー',    hex:'#1870C8'},
+  {code:'SC-31', name:'シェルライト',    hex:'#F0EDE8'},
+  {code:'SC-32', name:'ライトクリーム',  hex:'#F0E8D0'},
+];
+
+// 最近使った色
+let recentColors = JSON.parse(localStorage.getItem('recentColors') || '[]');
+let curTab = 'wall';
+
+/* =====================================================
+   PALETTE BUILD
+===================================================== */
 function buildPalette() {
-  const grid = document.getElementById('palette-grid');
-  PALETTE.forEach(row => row.forEach(c => {
-    const sw = document.createElement('div');
-    sw.className = 'pal-sw';
-    sw.style.background = c;
-    sw.title = c;
-    sw.onclick = () => setColor(c);
-    grid.appendChild(sw);
-  }));
+  buildPaletteGrid('palette-grid-wall-dt', WALL_DT);
+  buildPaletteGrid('palette-grid-wall-sc', WALL_SC);
+  buildPaletteGrid('palette-grid-roof-rc', ROOF_RC);
+  buildPaletteGrid('palette-grid-roof-sc', ROOF_SC);
+  buildRecentColors();
 }
 
-function setColor(hex) {
+function buildPaletteGrid(gridId, colors) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  grid.innerHTML = '';
+  colors.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'pal-sw';
+    sw.style.background = c.hex;
+    sw.setAttribute('data-name', c.name);
+    sw.setAttribute('data-code', c.code);
+    sw.title = c.hex;
+    sw.onclick = () => setColor(c.hex, c.name, c.code);
+    grid.appendChild(sw);
+  });
+}
+
+function buildRecentColors() {
+  const wrap = document.getElementById('recent-colors');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  recentColors.slice(0,12).forEach(c => {
+    const sw = document.createElement('div');
+    sw.style.cssText = `width:24px;height:24px;border-radius:4px;background:${c.hex};cursor:pointer;border:2px solid transparent;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .14s`;
+    sw.title = c.name || c.hex;
+    sw.onclick = () => setColor(c.hex, c.name, '');
+    sw.onmouseover = () => sw.style.transform='scale(1.15)';
+    sw.onmouseout  = () => sw.style.transform='scale(1)';
+    wrap.appendChild(sw);
+  });
+}
+
+function switchTab(tab) {
+  curTab = tab;
+  ['wall','roof','custom'].forEach(t => {
+    document.getElementById('pal-'+t).style.display = t===tab ? 'block' : 'none';
+    const btn = document.getElementById('tab-'+t);
+    if (t===tab) { btn.style.background='var(--acc)'; btn.style.color='#fff'; btn.style.border='none'; }
+    else { btn.style.background='var(--panel2)'; btn.style.color='var(--tx2)'; btn.style.border='1px solid var(--border)'; }
+  });
+}
+
+function setColor(hex, name, code) {
   curColor = hex;
   document.getElementById('color-swatch-big').style.background = hex;
   document.getElementById('color-hex-inp').value = hex.toUpperCase();
   document.getElementById('color-picker-inp').value = hex;
+  if (document.getElementById('custom-picker')) document.getElementById('custom-picker').value = hex;
+  if (document.getElementById('custom-hex-inp')) document.getElementById('custom-hex-inp').value = hex.toUpperCase();
+
+  // 色名表示
+  const nameDisp = document.getElementById('color-name-disp');
+  if (nameDisp) nameDisp.textContent = (code ? code + '　' : '') + (name || hex.toUpperCase());
+
+  // パレットの選択状態
   document.querySelectorAll('.pal-sw').forEach(s => s.classList.toggle('sel', s.title === hex));
+
+  // 最近使った色に追加
+  if (name) {
+    recentColors = recentColors.filter(c => c.hex !== hex);
+    recentColors.unshift({ hex, name, code });
+    if (recentColors.length > 12) recentColors.pop();
+    localStorage.setItem('recentColors', JSON.stringify(recentColors));
+    buildRecentColors();
+  }
 }
 
-function onColorPicker(v) { setColor(v); updatePreview(); }
+function onColorPicker(v) { setColor(v, 'カスタム', ''); updatePreview(); }
 function onHexInput(v) {
-  if (/^#[0-9A-Fa-f]{6}$/.test(v)) { setColor(v); updatePreview(); }
+  if (/^#[0-9A-Fa-f]{6}$/.test(v)) { setColor(v, 'カスタム', ''); updatePreview(); }
 }
 function updColorOpa() {
   colorOpa = +document.getElementById('color-opa').value / 100;
@@ -1195,6 +1424,8 @@ function toast(msg, type='') {
 ===================================================== */
 buildPalette();
 setTool('wand');
+setColor('#F0EDE0', 'ミストホワイト', 'DT-N87');
+switchTab('wall');
 </script>
 </body>
 </html>
