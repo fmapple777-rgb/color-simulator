@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="カラーシミュレーター">
+<title>住宅カラーシミュレーター</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ECF0F5;--surface:#fff;--s2:#F4F7FB;
+  --bdr:#DDE3EC;--bdr2:#C5CDD9;
+  --acc:#1A5CA0;--acc-lt:#E8F1FB;--acc-dk:#103D70;
+  --gold:#C48C20;--gold-lt:#FDF3E0;
+  --green:#1A7A42;--green-lt:#E6F6ED;
+  --red:#B83030;--purple:#6040A8;
+  --tx:#18202E;--tx2:#40506A;--tx3:#7A8898;
+  --sh1:0 1px 3px rgba(0,0,0,.07);--sh2:0 4px 14px rgba(0,0,0,.10);
+  --r:12px;--rs:7px;
+}
+html{height:100%;-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--bg);color:var(--tx);min-height:100%;overscroll-behavior:none}
+button,input,textarea{font-family:inherit}
+
+/* TOPBAR */
+.topbar{background:var(--acc-dk);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.22);position:sticky;top:0;z-index:200;min-height:52px}
+.tb-brand{display:flex;align-items:center;gap:10px}
+.tb-icon{width:34px;height:34px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.tb-title{font-size:15px;font-weight:700;letter-spacing:.03em}
+.tb-sub{font-size:10px;opacity:.6;letter-spacing:.1em;margin-top:1px}
+.api-btn{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:background .2s}
+.api-btn:hover{background:rgba(255,255,255,.22)}
+.api-btn.on{background:rgba(30,160,80,.35);border-color:rgba(80,220,120,.4)}
+.api-dot{width:7px;height:7px;border-radius:50%;background:#aaa}
+.api-dot.on{background:#4DE880}
+
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(10,20,40,.65);display:flex;align-items:center;justify-content:center;z-index:500;padding:20px;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-ov.open{opacity:1;pointer-events:all}
+.modal-box{background:#fff;border-radius:var(--r);box-shadow:var(--sh2);width:100%;max-width:460px;padding:26px;transform:translateY(14px);transition:transform .25s}
+.modal-ov.open .modal-box{transform:translateY(0)}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:6px}
+.modal-desc{font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:16px}
+.modal-desc a{color:var(--acc)}
+.modal-lbl{font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px;display:block}
+.modal-inp-wrap{position:relative;margin-bottom:12px}
+.modal-inp-wrap input{width:100%;border:1.5px solid var(--bdr2);border-radius:var(--rs);padding:10px 38px 10px 12px;font-size:13px;outline:none;background:var(--s2);transition:border-color .2s}
+.modal-inp-wrap input:focus{border-color:var(--acc);background:#fff}
+.modal-eye{position:absolute;right:9px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;color:var(--tx3);padding:4px}
+.modal-info{background:var(--acc-lt);border:1px solid #BCD0EE;border-radius:var(--rs);padding:10px 12px;font-size:11px;color:#183060;line-height:1.7;margin-bottom:14px}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.modal-cancel{background:transparent;border:1px solid var(--bdr2);border-radius:var(--rs);padding:9px 16px;font-size:12px;cursor:pointer;color:var(--tx2)}
+.modal-save{background:var(--acc);color:#fff;border:none;border-radius:var(--rs);padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer}
+
+/* LAYOUT */
+.app{display:flex;align-items:flex-start;max-width:1560px;margin:0 auto}
+
+/* LEFT PANEL */
+.lp{width:264px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--bdr);min-height:calc(100vh - 52px);display:flex;flex-direction:column;overflow-y:auto;position:sticky;top:52px;height:calc(100vh - 52px)}
+.lp::-webkit-scrollbar{width:4px}
+.lp::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+.sec{padding:14px 14px;border-bottom:1px solid var(--bdr)}
+.sec-ttl{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:11px}
+.sn{width:18px;height:18px;background:var(--acc);color:#fff;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* UPLOAD */
+.upload-lbl{display:block;border:2px dashed var(--bdr2);border-radius:var(--rs);padding:18px 10px;text-align:center;background:var(--s2);cursor:pointer;transition:border-color .2s,background .2s;-webkit-tap-highlight-color:transparent}
+.upload-lbl:hover,.upload-lbl.over{border-color:var(--acc);background:var(--acc-lt)}
+.upload-lbl input[type=file]{position:absolute;width:1px;height:1px;opacity:0;transform:scale(0)}
+.uz-icon{font-size:26px;margin-bottom:5px}
+.uz-txt{font-size:11px;color:var(--tx2);margin-bottom:8px}
+.uz-btn{display:inline-flex;align-items:center;gap:6px;background:var(--acc);color:#fff;border-radius:var(--rs);padding:10px 20px;font-size:13px;font-weight:700;pointer-events:none;box-shadow:0 2px 7px rgba(26,92,160,.28)}
+.uz-sub{font-size:9px;color:var(--tx3);margin-top:8px;pointer-events:none}
+.upload-name{font-size:10px;color:var(--tx3);margin-top:6px;text-align:center;word-break:break-all;display:none}
+
+/* PALETTE */
+.pal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:9px}
+.p-chip{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.p-sw{width:100%;aspect-ratio:1;border-radius:6px;border:2.5px solid transparent;box-shadow:0 1px 4px rgba(0,0,0,.13);transition:transform .14s,border-color .14s}
+.p-sw:hover{transform:scale(1.09)}
+.p-sw.sel{border-color:var(--acc);transform:scale(1.1);box-shadow:0 0 0 3px rgba(26,92,160,.18)}
+.p-nm{font-size:9px;color:var(--tx3);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.cust-row{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--bdr);border-radius:var(--rs);padding:7px 10px;margin-bottom:8px}
+.cust-row label{font-size:10px;color:var(--tx2);font-weight:600;white-space:nowrap}
+.cust-row input[type=color]{width:28px;height:24px;border:none;background:none;cursor:pointer;padding:0;border-radius:3px}
+.sel-disp{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bdr);border-radius:var(--rs);padding:9px 10px}
+.sel-sw{width:36px;height:36px;border-radius:6px;border:1px solid rgba(0,0,0,.09);box-shadow:var(--sh1);flex-shrink:0;transition:background .2s}
+.sel-nm{font-size:13px;font-weight:700}
+.sel-cd{font-size:11px;color:var(--tx2);font-family:monospace;margin-top:2px}
+
+/* LAYER LIST */
+.layer-list{display:flex;flex-direction:column;gap:5px}
+.layer-item{display:flex;align-items:center;gap:8px;background:var(--s2);border:1.5px solid var(--bdr);border-radius:var(--rs);padding:8px 10px;cursor:pointer;transition:all .14s;-webkit-tap-highlight-color:transparent}
+.layer-item:hover{border-color:var(--acc);background:var(--acc-lt)}
+.layer-item.active{border-color:var(--acc);background:var(--acc-lt)}
+.layer-item.locked{cursor:default;opacity:.5}
+.layer-item.locked:hover{border-color:var(--bdr);background:var(--s2)}
+.li-color{width:20px;height:20px;border-radius:4px;border:1.5px solid rgba(0,0,0,.12);flex-shrink:0;transition:background .2s}
+.li-name{flex:1;font-size:12px;font-weight:600;color:var(--tx2)}
+.li-orig{font-size:9px;color:var(--tx3);font-family:monospace}
+.li-lock{font-size:11px}
+.li-actions{display:flex;gap:4px;margin-left:auto}
+.li-act-btn{background:transparent;border:1px solid var(--bdr);border-radius:4px;padding:3px 6px;font-size:10px;cursor:pointer;color:var(--tx3);transition:all .14s}
+.li-act-btn:hover{border-color:var(--acc);color:var(--acc)}
+
+/* BRUSH SECTION */
+.tool-row{display:flex;gap:5px;margin-bottom:8px}
+.tool-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:var(--s2);border:1.5px solid var(--bdr);border-radius:var(--rs);padding:7px 4px;font-size:11px;cursor:pointer;color:var(--tx2);transition:all .14s;white-space:nowrap}
+.tool-btn:hover{border-color:var(--acc);color:var(--acc)}
+.tool-btn.active{background:var(--acc);color:#fff;border-color:var(--acc)}
+.sl-row{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.sl-row label{font-size:10px;color:var(--tx2);white-space:nowrap;min-width:52px}
+.sl-row input[type=range]{flex:1;accent-color:var(--acc)}
+.sl-row span{font-size:10px;color:var(--tx3);min-width:30px;text-align:right}
+.info-pill{border-radius:var(--rs);padding:8px 10px;font-size:10px;line-height:1.7;border:1px solid}
+.info-pill.blue{background:var(--acc-lt);border-color:#BDD0EE;color:#183060}
+.info-pill.gold{background:var(--gold-lt);border-color:#EDD890;color:#604A08}
+
+/* RIGHT COL */
+.rc{flex:1;min-width:0;display:flex;flex-direction:column}
+
+/* STAGE TOOLBAR */
+.stage-bar{display:flex;align-items:center;gap:6px;padding:9px 14px;border-bottom:1px solid var(--bdr);background:var(--surface);flex-wrap:wrap}
+.bar-lbl{font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin-right:4px}
+.ai-btn{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#7040C0,#1A5CA0);color:#fff;border:none;border-radius:var(--rs);padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.04em;box-shadow:0 2px 8px rgba(112,64,192,.3);transition:filter .15s,transform .1s;white-space:nowrap}
+.ai-btn:hover{filter:brightness(1.1)}
+.ai-btn:active{transform:scale(.97)}
+.ai-btn:disabled{opacity:.45;cursor:not-allowed}
+.icon-btn{background:var(--s2);border:1px solid var(--bdr);border-radius:var(--rs);padding:6px 10px;font-size:11px;cursor:pointer;color:var(--tx2);transition:all .14s;white-space:nowrap}
+.icon-btn:hover{border-color:var(--acc);color:var(--acc)}
+.icon-btn.del:hover{border-color:var(--red);color:var(--red)}
+.spacer{flex:1}
+
+/* AI RIBBON */
+.ai-ribbon{display:none;align-items:center;gap:8px;padding:7px 14px;background:linear-gradient(90deg,#EEE8F8,#E8F0FB);border-bottom:1px solid #D0C0EC;font-size:11px;color:#5030A0}
+.ai-ribbon.show{display:flex}
+.spin{width:13px;height:13px;border:2px solid rgba(80,48,160,.18);border-top-color:#5030A0;border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* CANVAS AREA */
+.sim-body{padding:12px 14px 14px;background:var(--surface)}
+.sim-outer{position:relative;background:#1C2533;border-radius:var(--rs);overflow:hidden;line-height:0;min-height:160px;display:flex;align-items:center;justify-content:center;box-shadow:var(--sh2)}
+/* Canvas stack */
+#c-photo{display:block;max-width:100%;position:relative;z-index:1}
+.overlay-canvas{position:absolute;top:0;left:0;display:block;max-width:100%;z-index:2;pointer-events:none}
+#c-brush{position:absolute;top:0;left:0;display:block;max-width:100%;z-index:3;cursor:crosshair;touch-action:none}
+.sim-ph{text-align:center;color:rgba(255,255,255,.32);padding:50px 20px;pointer-events:none;position:relative;z-index:1}
+.sim-ph-icon{font-size:36px;margin-bottom:10px}
+.sim-ph-txt{font-size:12px;line-height:1.9}
+.canvas-hint{display:none;font-size:10px;color:var(--tx3);margin-top:6px;text-align:right}
+.lo{position:absolute;inset:0;background:rgba(16,28,52,.75);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#fff;font-size:12px;border-radius:var(--rs);z-index:50;text-align:center;padding:20px}
+.lo.show{display:flex}
+.lo-spin{width:36px;height:36px;border:3px solid rgba(255,255,255,.18);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite}
+
+/* SUMMARY */
+.sum-bar{padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-height:40px}
+.sum-lbl{font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.08em;white-space:nowrap}
+.sum-chip{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--bdr);border-radius:5px;padding:3px 8px;font-size:10px}
+.sum-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(0,0,0,.1)}
+
+/* REPORT */
+.rpt-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--bdr)}
+.rh-left{display:flex;align-items:center;gap:7px}
+.rh-icon{width:22px;height:22px;background:var(--acc-lt);color:var(--acc);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.rh-title{font-size:11px;font-weight:700;color:var(--tx2);letter-spacing:.08em;text-transform:uppercase}
+.pdf-btn{display:inline-flex;align-items:center;gap:6px;background:var(--acc);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 2px 7px rgba(26,92,160,.28);transition:background .15s,transform .1s}
+.pdf-btn:hover{background:var(--acc-dk)}
+.pdf-btn:active{transform:scale(.97)}
+.a4-wrap{overflow-x:auto;padding:14px;background:var(--bg)}
+.a4-wrap::-webkit-scrollbar{height:5px}
+.a4-wrap::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+
+/* A4 SHEET */
+#report-sheet{width:1040px;min-height:680px;background:#fff;border:1px solid var(--bdr2);border-radius:4px;box-shadow:var(--sh2);font-family:-apple-system,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;overflow:hidden}
+.rs-head{background:var(--acc-dk);color:#fff;padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.rs-main{font-size:14px;font-weight:700;letter-spacing:.05em}
+.rs-sub{font-size:10px;opacity:.6;margin-top:2px;letter-spacing:.1em}
+.rs-logo{text-align:right;font-size:10px;opacity:.6;line-height:1.6}
+.gold-bar{height:3px;background:linear-gradient(90deg,var(--gold),#F0C060,var(--gold))}
+.rs-info{display:flex;align-items:center;padding:8px 24px;background:var(--s2);border-bottom:1px solid var(--bdr)}
+.rs-fld{display:flex;align-items:center;gap:6px;padding-right:16px;margin-right:16px;border-right:1px solid var(--bdr2)}
+.rs-fld:last-child{border-right:none}
+.rs-fld label{font-size:10px;color:var(--tx2);font-weight:700;white-space:nowrap;letter-spacing:.04em}
+.rs-fld input{border:none;border-bottom:1.5px solid var(--bdr2);background:transparent;font-size:12px;font-family:inherit;color:var(--tx);padding:1px 3px;outline:none;width:120px;transition:border-color .2s}
+.rs-fld input:focus{border-color:var(--acc)}
+.rs-body{display:flex;padding:14px 24px}
+.ba-col{flex:1;display:flex;flex-direction:column;gap:5px}
+.ba-gap{width:14px;flex-shrink:0}
+.ba-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;padding:3px 9px;border-radius:3px;text-align:center}
+.ba-lbl.before{background:#F0F2F6;color:var(--tx2);border:1px solid var(--bdr)}
+.ba-lbl.after{background:var(--acc-lt);color:var(--acc);border:1px solid #BCD0EE}
+.ba-box{width:100%;aspect-ratio:4/3;border:1px solid var(--bdr2);border-radius:3px;overflow:hidden;background:#CDD3DC;position:relative}
+.ba-box canvas{width:100%;height:100%;object-fit:cover;display:block}
+.ba-note{font-size:9px;text-align:center;padding-top:3px;color:var(--tx3)}
+.rs-info-col{width:210px;flex-shrink:0;margin-left:14px;display:flex;flex-direction:column;gap:9px}
+.spec-box{border:1px solid var(--bdr);border-radius:var(--rs);overflow:hidden}
+.spec-head{background:var(--acc-dk);color:#fff;font-size:10px;font-weight:700;padding:6px 11px;letter-spacing:.07em}
+.spec-row{display:flex;align-items:center;gap:6px;padding:5px 9px;border-bottom:1px solid var(--bdr);font-size:11px}
+.spec-row:last-child{border-bottom:none}
+.spec-dot{width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(0,0,0,.1);flex-shrink:0}
+.spec-part{color:var(--tx2);font-weight:600;flex:1}
+.spec-code{font-family:monospace;font-size:10px;color:var(--tx3)}
+.notes-box{border:1px solid var(--bdr);border-radius:var(--rs);overflow:hidden}
+.notes-head{background:var(--s2);color:var(--tx2);font-size:10px;font-weight:700;padding:6px 11px;border-bottom:1px solid var(--bdr);letter-spacing:.05em}
+.notes-box textarea{width:100%;height:85px;border:none;resize:none;font-size:11px;font-family:inherit;color:var(--tx);padding:7px 10px;outline:none;line-height:1.7;background:#fff}
+.rs-footer{border-top:1px solid var(--bdr);padding:7px 24px;display:flex;justify-content:space-between;align-items:center;background:var(--s2)}
+.rs-fnote{font-size:9px;color:var(--tx3);line-height:1.5}
+.rs-stamp{width:44px;height:44px;border-radius:50%;border:2px solid var(--bdr2);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--tx3);text-align:center;line-height:1.3}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--acc-dk);color:#fff;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;opacity:0;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.22);transition:opacity .24s,transform .24s;white-space:nowrap;z-index:9999;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red)}
+.toast.ok{background:var(--green)}
+
+/* SAVE/LOAD BUTTONS */
+.save-row{display:flex;gap:6px;flex-wrap:wrap}
+.sv-btn{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:4px;border:1.5px solid var(--bdr);border-radius:var(--rs);padding:8px 5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .14s;background:var(--s2);color:var(--tx2);white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.sv-btn:hover{border-color:var(--acc);color:var(--acc);background:var(--acc-lt)}
+.sv-btn.g{background:var(--green-lt);border-color:#90D8A8;color:var(--green)}
+.sv-btn.g:hover{background:var(--green);color:#fff;border-color:var(--green)}
+.sv-btn.gd{background:var(--gold-lt);border-color:#EDD890;color:var(--gold)}
+.sv-btn.gd:hover{background:var(--gold);color:#fff;border-color:var(--gold)}
+
+/* PATTERN MODAL */
+.pt-ov{position:fixed;inset:0;background:rgba(10,20,40,.7);display:flex;align-items:center;justify-content:center;z-index:600;padding:16px;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s}
+.pt-ov.open{opacity:1;pointer-events:all}
+.pt-box{background:#fff;border-radius:var(--r);box-shadow:0 8px 32px rgba(0,0,0,.18);width:100%;max-width:880px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column}
+.pt-head{padding:14px 18px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.pt-head-title{font-size:15px;font-weight:700}
+.pt-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3);padding:4px 8px;line-height:1}
+.pt-body{padding:14px 18px;flex:1;overflow-y:auto}
+.pt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:11px}
+.pt-card{border:1.5px solid var(--bdr);border-radius:var(--rs);overflow:hidden;cursor:pointer;transition:all .15s;position:relative}
+.pt-card:hover{border-color:var(--acc);box-shadow:0 2px 10px rgba(26,92,160,.18)}
+.pt-card.cur{border-color:var(--acc);box-shadow:0 0 0 3px rgba(26,92,160,.2)}
+.pt-thumb{width:100%;aspect-ratio:4/3;display:block;background:#CDD3DC;object-fit:cover}
+.pt-card-body{padding:8px 9px;border-top:1px solid var(--bdr)}
+.pt-card-name{font-size:12px;font-weight:700;color:var(--tx);margin-bottom:4px}
+.pt-chips{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px}
+.pt-chip{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--tx3);background:var(--s2);border:1px solid var(--bdr);border-radius:3px;padding:2px 5px}
+.pt-cd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pt-acts{display:flex;gap:4px}
+.pt-load{flex:1;background:var(--acc);color:#fff;border:none;border-radius:4px;padding:5px;font-size:10px;font-weight:700;cursor:pointer}
+.pt-load:hover{background:var(--acc-dk)}
+.pt-del{background:#FCEAEA;color:var(--red);border:1px solid #F0B0B0;border-radius:4px;padding:5px 8px;font-size:10px;font-weight:700;cursor:pointer}
+.pt-del:hover{background:var(--red);color:#fff}
+.pt-empty{text-align:center;padding:40px 20px;color:var(--tx3);font-size:13px;line-height:1.8}
+.pt-foot{padding:12px 18px;border-top:1px solid var(--bdr);display:flex;gap:9px;align-items:center;flex-shrink:0}
+.pt-name-inp{flex:1;border:1.5px solid var(--bdr2);border-radius:var(--rs);padding:8px 11px;font-size:13px;outline:none;transition:border-color .2s}
+.pt-name-inp:focus{border-color:var(--acc)}
+.pt-save-btn{background:var(--acc);color:#fff;border:none;border-radius:var(--rs);padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.pt-badge{position:absolute;top:6px;right:6px;background:var(--acc);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .app{flex-direction:column}
+  .lp{width:100%;min-height:auto;height:auto;position:static;border-right:none;border-bottom:1px solid var(--bdr)}
+  .sec{flex:1;min-width:220px}
+}
+@media(max-width:600px){
+  .topbar{padding:8px 12px}
+  .tb-title{font-size:13px}
+  .tb-sub{display:none}
+  .stage-bar{padding:7px 10px}
+  .ai-btn{font-size:10px;padding:6px 10px}
+}
+@media(pointer:coarse){
+  .p-sw{border-width:3px}
+  .tool-btn{padding:9px 5px}
+  .layer-item{padding:10px 10px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-brand">
+    <div class="tb-icon">🏠</div>
+    <div>
+      <div class="tb-title">住宅カラーシミュレーター</div>
+      <div class="tb-sub">LAYER-BASED COLOR SYSTEM</div>
+    </div>
+  </div>
+  <button class="api-btn" id="api-btn" onclick="openAIModal()" style="display:none">
+    <div class="api-dot on" id="api-dot"></div>
+    <span id="api-lbl">AI解析</span>
+  </button>
+</div>
+
+<!-- AI解析モーダル（Claude.aiチャット連携） -->
+<div class="modal-ov" id="ai-modal-ov" onclick="closeAIModalOut(event)">
+  <div class="modal-box" style="max-width:600px">
+    <div class="modal-title">✨ AIで部位を自動認識</div>
+    <div class="modal-desc" style="margin-bottom:12px">
+      <strong>Claude.ai（このチャット）を使って無料で解析できます。</strong><br>
+      下の手順に従ってください。追加費用ゼロです。
+    </div>
+
+    <!-- STEP 1 -->
+    <div style="background:#F4F7FB;border:1px solid #DDE3EC;border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:#1A5CA0;margin-bottom:8px">① この写真をClaudeに送る</div>
+      <img id="ai-preview-img" src="" alt="解析用写真" style="width:100%;border-radius:6px;border:1px solid #DDE3EC;margin-bottom:8px;max-height:180px;object-fit:cover">
+      <div style="font-size:10px;color:#7A8898;margin-bottom:6px">↑ この写真をスクリーンショットして保存、またはClaudeのチャット画面に直接添付してください</div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div style="background:#F4F7FB;border:1px solid #DDE3EC;border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:#1A5CA0;margin-bottom:6px">② 下のプロンプトをコピーしてClaudeに送る</div>
+      <div id="ai-prompt-txt" style="background:#fff;border:1px solid #C5CDD9;border-radius:6px;padding:10px;font-size:10px;color:#40506A;line-height:1.6;max-height:120px;overflow-y:auto;white-space:pre-wrap;margin-bottom:6px">この住宅写真を解析し、塗装可能な各部位の位置を検出してください。
+
+以下のJSON形式のみで返答してください（説明文不要）：
+{"regions":[{"id":"wall","label":"外壁","color":"#E8DCC8","rect":{"x":8,"y":38,"width":84,"height":50},"samples":[{"x":20,"y":50},{"x":50,"y":55},{"x":75,"y":50},{"x":20,"y":70},{"x":75,"y":70}],"tolerance":55},{"id":"roof","label":"屋根","color":"#6A4828","rect":{"x":10,"y":5,"width":80,"height":30},"samples":[{"x":30,"y":15},{"x":50,"y":12},{"x":70,"y":15}],"tolerance":45}]}
+
+検出対象：wall(外壁)、roof(屋根)、gutter(雨樋)、fascia(破風板)、soffit(軒天井)、door(玄関ドア)
+各部位：写真全体を100x100グリッドとしたrect(x,y,width,height)、現在の色color、代表サンプル点samples(5〜8点)、色の許容差tolerance(30〜80)</div>
+      <button onclick="copyAIPrompt()" style="width:100%;background:var(--acc);color:#fff;border:none;border-radius:6px;padding:8px;font-size:12px;font-weight:700;cursor:pointer">📋 プロンプトをコピー</button>
+    </div>
+
+    <!-- STEP 3 -->
+    <div style="background:#F4F7FB;border:1px solid #DDE3EC;border-radius:8px;padding:12px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:#1A5CA0;margin-bottom:6px">③ ClaudeのJSON回答をここに貼り付ける</div>
+      <textarea id="ai-json-inp" placeholder='{"regions":[...]} の形式で貼り付けてください' style="width:100%;height:90px;border:1.5px solid #C5CDD9;border-radius:6px;padding:8px;font-size:11px;font-family:monospace;outline:none;resize:vertical;line-height:1.5"></textarea>
+      <div style="display:flex;gap:7px;margin-top:7px">
+        <button onclick="pasteFromClipboard()" style="flex:1;background:#fff;border:1.5px solid #C5CDD9;border-radius:6px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;color:#40506A;display:flex;align-items:center;justify-content:center;gap:5px;-webkit-tap-highlight-color:transparent">
+          📋 クリップボードから貼り付け
+        </button>
+        <button onclick="clearJsonInp()" style="background:#fff;border:1.5px solid #C5CDD9;border-radius:6px;padding:9px 12px;font-size:12px;cursor:pointer;color:#B83030">✕</button>
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeAIModal()">キャンセル</button>
+      <button class="modal-save" onclick="applyAIJson()">✨ レイヤーを生成する</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app">
+
+<!-- LEFT PANEL -->
+<div class="lp">
+
+  <!-- S1: Upload -->
+  <div class="sec">
+    <div class="sec-ttl"><div class="sn">1</div>写真をアップロード</div>
+    <label class="upload-lbl" id="upload-lbl">
+      <input type="file" id="file-inp" accept="image/*" onchange="loadFile(event)">
+      <div class="uz-icon">📷</div>
+      <div class="uz-txt">住宅写真を選んで開始</div>
+      <div class="uz-btn">📂 写真を選ぶ</div>
+      <div class="uz-sub">JPG / PNG / HEIC 対応</div>
+    </label>
+    <div class="upload-name" id="upload-name"></div>
+  </div>
+
+  <!-- S2: Color -->
+  <div class="sec">
+    <div class="sec-ttl"><div class="sn">2</div>塗装カラーを選択</div>
+    <div class="pal-grid">
+      <div class="p-chip" onclick="pickColor('#F5F5F0','ピュアホワイト')"><div class="p-sw" style="background:#F5F5F0;border:1px solid #ccc"></div><div class="p-nm">ホワイト</div></div>
+      <div class="p-chip" onclick="pickColor('#F5F0DC','アイボリー')"><div class="p-sw" style="background:#F5F0DC"></div><div class="p-nm">アイボリー</div></div>
+      <div class="p-chip" onclick="pickColor('#E0D0B0','ライトBG')"><div class="p-sw" style="background:#E0D0B0"></div><div class="p-nm">L.ベージュ</div></div>
+      <div class="p-chip" onclick="pickColor('#C8A878','サンドBG')"><div class="p-sw" style="background:#C8A878"></div><div class="p-nm">サンドBG</div></div>
+      <div class="p-chip" onclick="pickColor('#A07850','キャメル')"><div class="p-sw" style="background:#A07850"></div><div class="p-nm">キャメル</div></div>
+      <div class="p-chip" onclick="pickColor('#6A4828','D.ブラウン')"><div class="p-sw" style="background:#6A4828"></div><div class="p-nm">D.ブラウン</div></div>
+      <div class="p-chip" onclick="pickColor('#708090','スレートGY')"><div class="p-sw" style="background:#708090"></div><div class="p-nm">スレートGY</div></div>
+      <div class="p-chip" onclick="pickColor('#3C3C3C','チャコール')"><div class="p-sw" style="background:#3C3C3C"></div><div class="p-nm">チャコール</div></div>
+      <div class="p-chip" onclick="pickColor('#5A7090','スチールBL')"><div class="p-sw" style="background:#5A7090"></div><div class="p-nm">スチールBL</div></div>
+      <div class="p-chip" onclick="pickColor('#487860','フォレスト')"><div class="p-sw" style="background:#487860"></div><div class="p-nm">フォレスト</div></div>
+      <div class="p-chip" onclick="pickColor('#AA4828','テラコッタ')"><div class="p-sw" style="background:#AA4828"></div><div class="p-nm">テラコッタ</div></div>
+      <div class="p-chip" onclick="pickColor('#181818','マットBK')"><div class="p-sw" style="background:#181818"></div><div class="p-nm">マットBK</div></div>
+    </div>
+    <div class="cust-row">
+      <label>カスタム:</label>
+      <input type="color" id="cust-col" value="#F5F0DC" oninput="pickColor(this.value,'カスタム '+this.value.toUpperCase())">
+      <span id="cust-hex" style="font-family:monospace;font-size:10px;color:var(--tx2)">#F5F0DC</span>
+    </div>
+    <div class="sel-disp">
+      <div class="sel-sw" id="sel-sw" style="background:#F5F0DC"></div>
+      <div>
+        <div class="sel-nm" id="sel-nm">アイボリー</div>
+        <div class="sel-cd" id="sel-cd">#F5F0DC</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3: Layers -->
+  <div class="sec" id="layers-sec" style="display:none">
+    <div class="sec-ttl"><div class="sn" style="background:var(--purple)">AI</div>部位レイヤー</div>
+    <div class="info-pill gold" style="margin-bottom:9px;font-size:10px;">部位名をタップ→選択した色に変更<br>🖌️ブラシで境界を手動調整できます</div>
+    <div class="layer-list" id="layer-list"></div>
+  </div>
+
+  <!-- S4: Brush (manual adjust) -->
+  <div class="sec" id="brush-sec" style="display:none">
+    <div class="sec-ttl"><div class="sn">3</div>手動調整ブラシ</div>
+    <div class="tool-row">
+      <button class="tool-btn active" id="tb-brush"  onclick="setTool('brush')">🖌️ 塗る</button>
+      <button class="tool-btn"        id="tb-eraser" onclick="setTool('eraser')">🧹 消す</button>
+    </div>
+    <div class="sl-row">
+      <label>サイズ</label>
+      <input type="range" id="br-sz" min="4" max="80" value="20" oninput="updBr()">
+      <span id="br-sz-v">20px</span>
+    </div>
+    <div class="sl-row">
+      <label>不透明度</label>
+      <input type="range" id="br-op" min="20" max="100" value="85" oninput="updOp()">
+      <span id="br-op-v">85%</span>
+    </div>
+    <div class="info-pill blue" style="font-size:10px;">レイヤーを選択した状態でブラシを使うと、その部位の色で塗れます</div>
+  </div>
+
+  <!-- S5: Save / Export -->
+  <div class="sec">
+    <div class="sec-ttl"><div class="sn" style="background:var(--green)">💾</div>保存・書き出し</div>
+    <div class="save-row" style="margin-bottom:7px;">
+      <button class="sv-btn g" onclick="saveProject()" title="作業中の状態をブラウザに保存">💾 作業を保存</button>
+      <button class="sv-btn"   onclick="loadProject()" title="保存した作業を再開">📂 作業を再開</button>
+    </div>
+    <div class="save-row" style="margin-bottom:7px;">
+      <button class="sv-btn gd" onclick="exportImage()" title="現在のシミュレーター画面を画像で保存">🖼️ 画像で保存</button>
+      <button class="sv-btn"    onclick="exportBeforeAfter()" title="施工前後を並べた画像で保存">↔️ 比較画像</button>
+    </div>
+    <div class="save-row">
+      <button class="sv-btn" style="flex:1;background:linear-gradient(135deg,#EEE8F8,#E8F0FB);border-color:#C8B0E8;color:var(--purple);font-weight:700;" onclick="openPatternModal()">📋 配色パターン管理</button>
+    </div>
+  </div>
+
+</div><!-- end .lp -->
+
+<!-- RIGHT COL -->
+<div class="rc">
+
+  <!-- Stage toolbar -->
+  <div class="stage-bar">
+    <span class="bar-lbl">シミュレーター</span>
+    <button class="ai-btn" id="ai-btn" onclick="runAI()" disabled>✨ AIで部位を自動認識</button>
+    <div class="spacer"></div>
+    <button class="icon-btn" onclick="undoAct()" title="元に戻す">↩ 戻す</button>
+    <button class="icon-btn" onclick="redoAct()" title="やり直す">↪ やり直す</button>
+    <button class="icon-btn del" onclick="clearAll()">🗑 クリア</button>
+  </div>
+
+  <div class="ai-ribbon" id="ai-ribbon">
+    <div class="spin"></div>
+    <span id="ai-msg">AIが住宅写真を解析しています…</span>
+  </div>
+
+  <div class="sim-body">
+    <div class="sim-outer" id="sim-outer">
+      <!-- Layer 0: Original photo -->
+      <canvas id="c-photo"></canvas>
+      <!-- Layer 1: Color overlay (composited from all region layers) -->
+      <canvas class="overlay-canvas" id="c-overlay"></canvas>
+      <!-- Layer 2: Brush strokes (manual adjustment) -->
+      <canvas id="c-brush"></canvas>
+      <!-- Placeholder -->
+      <div class="sim-ph" id="sim-ph">
+        <div class="sim-ph-icon">🏠</div>
+        <div class="sim-ph-txt">住宅写真をアップロードすると<br>ここにシミュレーターが表示されます</div>
+      </div>
+      <!-- Loading -->
+      <div class="lo" id="lo">
+        <div class="lo-spin"></div>
+        <span id="lo-msg">AI解析中…</span>
+      </div>
+    </div>
+    <div class="canvas-hint" id="canvas-hint">部位レイヤーをタップして色変更 ／ ブラシで手動調整</div>
+  </div>
+
+  <!-- Summary -->
+  <div class="sum-bar" id="sum-bar">
+    <span class="sum-lbl">配色</span>
+    <span style="font-size:10px;color:var(--tx3)">写真をアップロードすると表示されます</span>
+  </div>
+
+  <!-- Report -->
+  <div>
+    <div class="rpt-hdr">
+      <div class="rh-left">
+        <div class="rh-icon">📄</div>
+        <div class="rh-title">施工前・施工後 提案シート（A4横）</div>
+      </div>
+      <button class="pdf-btn" onclick="savePDF()">⬇ PDFで保存</button>
+    </div>
+    <div class="a4-wrap">
+      <div id="report-sheet">
+        <div class="rs-head">
+          <div>
+            <div class="rs-main">御満足いただける住まいへ　外壁塗装カラーシミュレーション御提案書</div>
+            <div class="rs-sub">EXTERIOR PAINTING COLOR SIMULATION PROPOSAL</div>
+          </div>
+          <div class="rs-logo">株式会社〇〇リフォーム<br>TEL: 0120-XXX-XXX<br>営業担当</div>
+        </div>
+        <div class="gold-bar"></div>
+        <div class="rs-info">
+          <div class="rs-fld"><label>お客様名</label><input type="text" placeholder="山田 太郎　様" id="r-cust"></div>
+          <div class="rs-fld"><label>御住所</label><input type="text" placeholder="東京都〇〇区〇〇1-2-3" id="r-addr" style="width:160px"></div>
+          <div class="rs-fld"><label>作成日</label><input type="text" id="r-date" style="width:100px"></div>
+          <div class="rs-fld"><label>担当者名</label><input type="text" placeholder="鈴木 花子" id="r-staff"></div>
+        </div>
+        <div class="rs-body">
+          <div class="ba-col">
+            <div class="ba-lbl before">◼ 施工前（現状）</div>
+            <div class="ba-box" id="ba-before-box"><canvas id="rpt-before"></canvas></div>
+            <div class="ba-note">※現状の外壁カラーを示しています</div>
+          </div>
+          <div class="ba-gap"></div>
+          <div class="ba-col">
+            <div class="ba-lbl after">◼ 施工後（提案カラー）</div>
+            <div class="ba-box" id="ba-after-box"><canvas id="rpt-after"></canvas></div>
+            <div class="ba-note" style="color:var(--acc);font-weight:700">※シミュレーターの提案カラーです</div>
+          </div>
+          <div class="rs-info-col">
+            <div class="spec-box">
+              <div class="spec-head">🎨 使用カラー仕様</div>
+              <div id="spec-rows"><div class="spec-row" style="color:var(--tx3);font-size:11px;padding:9px 11px">塗装データなし</div></div>
+            </div>
+            <div class="notes-box">
+              <div class="notes-head">📝 担当者コメント・備考</div>
+              <textarea id="r-notes" placeholder="例）外壁はアイボリー系で統一し、屋根は落ち着いたブラウンをご提案しております。"></textarea>
+            </div>
+            <div style="font-size:9px;color:var(--tx3);line-height:1.6;padding:2px">※本提案書はカラーシミュレーション用資料です。実際の仕上がり色は塗料メーカーのサンプルで必ずご確認ください。</div>
+          </div>
+        </div>
+        <div class="rs-footer">
+          <div class="rs-fnote">本資料は外壁塗装カラーシミュレーション御提案書です。ご不明な点はお気軽に担当者までお問い合わせください。<br>〒000-0000　東京都〇〇区〇〇1-2-3　TEL: 0120-XXX-XXX　FAX: 0X-XXXX-XXXX</div>
+          <div class="rs-stamp">確認印<br>欄</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .rc -->
+</div><!-- end .app -->
+
+<!-- PATTERN MODAL -->
+<div class="pt-ov" id="pt-ov" onclick="closePtOut(event)">
+  <div class="pt-box">
+    <div class="pt-head">
+      <div class="pt-head-title">📋 配色パターン管理</div>
+      <button class="pt-close" onclick="closePtModal()">✕</button>
+    </div>
+    <div class="pt-body">
+      <div class="pt-grid" id="pt-grid">
+        <div class="pt-empty">まだパターンが保存されていません。<br>下の入力欄に名前を入れて「保存」してください。</div>
+      </div>
+    </div>
+    <div class="pt-foot">
+      <input type="text" class="pt-name-inp" id="pt-name-inp" placeholder="パターン名（例：アイボリー外壁案）" maxlength="30">
+      <button class="pt-save-btn" onclick="savePattern()">＋ 現在の配色を保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================
+   API KEY
+===================================================== */
+let API_KEY = localStorage.getItem('sim_api_key') || '';
+
+function openModal() { document.getElementById('api-inp').value=API_KEY; document.getElementById('modal-ov').classList.add('open'); }
+function closeModal() { document.getElementById('modal-ov').classList.remove('open'); }
+function closeModalOut(e) { if(e.target===document.getElementById('modal-ov')) closeModal(); }
+function toggleEye() {
+  const i=document.getElementById('api-inp'), e=document.getElementById('eye-btn');
+  i.type=i.type==='password'?'text':'password';
+  e.textContent=i.type==='password'?'👁️':'🙈';
+}
+function saveKey() {
+  const v=document.getElementById('api-inp').value.trim();
+  API_KEY=v;
+  v ? localStorage.setItem('sim_api_key',v) : localStorage.removeItem('sim_api_key');
+  updateApiStatus(); closeModal();
+  toast(v?'✅ APIキーを保存しました':'APIキーを削除しました', v?'ok':'');
+}
+function updateApiStatus() {
+  // Claude.ai版：APIキー不要。AIボタンは写真読み込み後に常に有効
+  if (origImg) document.getElementById('ai-btn').disabled = false;
+}
+
+/* =====================================================
+   STATE
+===================================================== */
+let curColor = '#F5F0DC', curColorName = 'アイボリー';
+let curTool  = 'brush', brushSz = 20, brushOp = 0.85;
+let isDrawing = false, lastX = 0, lastY = 0;
+let origImg = null;
+let cW = 0, cH = 0;
+
+let layers = [];
+let activeLayerIdx = -1;
+const undoStack = [], redoStack = [], MAX_UNDO = 30;
+
+/* =====================================================
+   CANVAS ELEMENTS
+===================================================== */
+const simOuter   = document.getElementById('sim-outer');
+const cPhoto     = document.getElementById('c-photo');
+const cOverlay   = document.getElementById('c-overlay');
+const cBrush     = document.getElementById('c-brush');
+const ctxPhoto   = cPhoto.getContext('2d');
+const ctxOverlay = cOverlay.getContext('2d');
+const ctxBrush   = cBrush.getContext('2d');
+
+function resizeAll(w, h) {
+  cW = w; cH = h;
+  [cPhoto, cOverlay, cBrush].forEach(c => {
+    c.width = w; c.height = h;
+    c.style.width = w + 'px'; c.style.height = h + 'px';
+  });
+  cOverlay.style.pointerEvents = 'none';
+  simOuter.style.minHeight = h + 'px';
+}
+
+/* =====================================================
+   UPLOAD
+===================================================== */
+document.getElementById('upload-lbl').addEventListener('dragover', e => { e.preventDefault(); document.getElementById('upload-lbl').classList.add('over'); });
+document.getElementById('upload-lbl').addEventListener('dragleave', () => document.getElementById('upload-lbl').classList.remove('over'));
+document.getElementById('upload-lbl').addEventListener('drop', e => {
+  e.preventDefault(); document.getElementById('upload-lbl').classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadImageFile(f);
+});
+function loadFile(e) { const f = e.target.files[0]; if (f) loadImageFile(f); e.target.value = ''; }
+
+function loadImageFile(file) {
+  const reader = new FileReader();
+  reader.onerror = () => toast('写真の読み込みに失敗しました', 'err');
+  reader.onload = ev => {
+    const img = new Image();
+    img.onerror = () => toast('この形式の写真は表示できません', 'err');
+    img.onload = () => {
+      origImg = img;
+      const maxW = Math.min(780, img.width);
+      const s = maxW / img.width;
+      resizeAll(Math.round(img.width * s), Math.round(img.height * s));
+      ctxPhoto.drawImage(img, 0, 0, cW, cH);
+      ctxOverlay.clearRect(0, 0, cW, cH);
+      ctxBrush.clearRect(0, 0, cW, cH);
+      layers = []; activeLayerIdx = -1;
+      undoStack.length = redoStack.length = 0;
+
+      document.getElementById('sim-ph').style.display = 'none';
+      document.getElementById('canvas-hint').style.display = 'block';
+      document.getElementById('upload-name').style.display = 'block';
+      document.getElementById('upload-name').textContent = '📁 ' + file.name;
+      document.getElementById('layers-sec').style.display = 'none';
+      document.getElementById('brush-sec').style.display = 'none';
+      document.getElementById('ai-btn').disabled = false;
+
+      syncReport(); updateSummary();
+      toast('✅ 写真を読み込みました！AIボタンで部位を自動認識できます', 'ok');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* =====================================================
+   COLOR PICKER
+===================================================== */
+function pickColor(hex, name) {
+  curColor = hex; curColorName = name;
+  document.getElementById('sel-sw').style.background = hex;
+  document.getElementById('sel-nm').textContent = name;
+  document.getElementById('sel-cd').textContent = hex.toUpperCase();
+  document.getElementById('cust-col').value = hex;
+  document.getElementById('cust-hex').textContent = hex.toUpperCase();
+  document.querySelectorAll('.p-sw').forEach(sw => {
+    const m = (sw.closest('.p-chip').getAttribute('onclick') || '').match(/'(#[0-9A-Fa-f]+)'/);
+    sw.classList.toggle('sel', m && m[1].toUpperCase() === hex.toUpperCase());
+  });
+}
+
+/* =====================================================
+   TOOL
+===================================================== */
+function setTool(t) {
+  curTool = t;
+  ['brush','eraser'].forEach(id => document.getElementById('tb-'+id).classList.toggle('active', id === t));
+  cBrush.style.cursor = 'crosshair';
+}
+function updBr() { brushSz = +document.getElementById('br-sz').value; document.getElementById('br-sz-v').textContent = brushSz + 'px'; }
+function updOp() { brushOp = +document.getElementById('br-op').value / 100; document.getElementById('br-op-v').textContent = Math.round(brushOp*100) + '%'; }
+
+/* =====================================================
+   BRUSH DRAWING (manual adjustment)
+===================================================== */
+function getXY(e) {
+  const rect = cBrush.getBoundingClientRect();
+  const sx = cW / rect.width, sy = cH / rect.height;
+  const src = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
+  return { x: (src.clientX - rect.left) * sx, y: (src.clientY - rect.top) * sy };
+}
+function saveUndo() {
+  undoStack.push(ctxOverlay.getImageData(0, 0, cW, cH));
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack.length = 0;
+}
+cBrush.addEventListener('pointerdown', e => {
+  if (!origImg) return; e.preventDefault();
+  saveUndo(); isDrawing = true;
+  const {x,y} = getXY(e); lastX = x; lastY = y;
+  strokeAt(x, y, x, y);
+});
+cBrush.addEventListener('pointermove', e => {
+  if (!isDrawing) return; e.preventDefault();
+  const {x,y} = getXY(e); strokeAt(lastX, lastY, x, y); lastX = x; lastY = y;
+});
+cBrush.addEventListener('pointerup',    () => { if(isDrawing){ isDrawing=false; syncReport(); updateSummary(); }});
+cBrush.addEventListener('pointerleave', () => { if(isDrawing){ isDrawing=false; syncReport(); updateSummary(); }});
+cBrush.addEventListener('touchstart',   e => e.preventDefault(), {passive:false});
+cBrush.addEventListener('touchmove',    e => e.preventDefault(), {passive:false});
+
+function hex2rgba(hex, a) {
+  hex = hex.replace('#','');
+  if (hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex, 16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+function strokeAt(x0, y0, x1, y1) {
+  // Brush strokes paint onto the overlay canvas
+  const col = activeLayerIdx >= 0 ? layers[activeLayerIdx].color : curColor;
+  ctxOverlay.save();
+  if (curTool === 'eraser') {
+    ctxOverlay.globalCompositeOperation = 'destination-out';
+    ctxOverlay.strokeStyle = 'rgba(0,0,0,1)';
+  } else {
+    ctxOverlay.globalCompositeOperation = 'source-over';
+    ctxOverlay.strokeStyle = hex2rgba(col, brushOp);
+  }
+  ctxOverlay.lineWidth = brushSz; ctxOverlay.lineCap = 'round'; ctxOverlay.lineJoin = 'round';
+  ctxOverlay.beginPath(); ctxOverlay.moveTo(x0, y0); ctxOverlay.lineTo(x1, y1); ctxOverlay.stroke();
+  ctxOverlay.restore();
+}
+
+/* =====================================================
+   UNDO / REDO
+===================================================== */
+function undoAct() {
+  if (!undoStack.length) { toast('これ以上戻せません'); return; }
+  redoStack.push(ctxOverlay.getImageData(0, 0, cW, cH));
+  ctxOverlay.putImageData(undoStack.pop(), 0, 0);
+  syncReport(); updateSummary();
+}
+function redoAct() {
+  if (!redoStack.length) { toast('これ以上やり直せません'); return; }
+  undoStack.push(ctxOverlay.getImageData(0, 0, cW, cH));
+  ctxOverlay.putImageData(redoStack.pop(), 0, 0);
+  syncReport(); updateSummary();
+}
+function clearAll() {
+  saveUndo();
+  ctxOverlay.clearRect(0, 0, cW, cH);
+  layers.forEach(l => l.color = l.origColor);
+  buildLayerList(); syncReport(); updateSummary();
+  toast('塗装をクリアしました');
+}
+document.addEventListener('keydown', e => {
+  const c = e.ctrlKey || e.metaKey;
+  if (c && e.key === 'z') { e.preventDefault(); undoAct(); }
+  if (c && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); redoAct(); }
+});
+
+/* =====================================================
+   AI — Claude.ai チャット連携方式
+   写真をClaudeに見せて解析結果JSONを受け取り
+   このアプリに貼り付けて適用する
+===================================================== */
+function runAI() {
+  if (!origImg) return;
+  openAIModal();
+}
+
+function openAIModal() {
+  // 送信用の画像データを生成してモーダルに表示
+  const sw = Math.min(cW, 800), sh = Math.round(cH * sw / cW);
+  const tmp = document.createElement('canvas'); tmp.width = sw; tmp.height = sh;
+  tmp.getContext('2d').drawImage(cPhoto, 0, 0, sw, sh);
+  const b64 = tmp.toDataURL('image/jpeg', 0.82);
+
+  document.getElementById('ai-preview-img').src = b64;
+  document.getElementById('ai-json-inp').value = '';
+  document.getElementById('ai-modal-ov').classList.add('open');
+}
+function closeAIModal() { document.getElementById('ai-modal-ov').classList.remove('open'); }
+function closeAIModalOut(e) { if(e.target===document.getElementById('ai-modal-ov')) closeAIModal(); }
+
+function copyAIPrompt() {
+  const prompt = document.getElementById('ai-prompt-txt').textContent;
+  navigator.clipboard.writeText(prompt).then(() => toast('プロンプトをコピーしました', 'ok')).catch(() => {
+    // フォールバック
+    const ta = document.createElement('textarea');
+    ta.value = prompt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    toast('プロンプトをコピーしました', 'ok');
+  });
+}
+
+function pasteFromClipboard() {
+  // navigator.clipboard.readText() はユーザー操作直後のみ動作
+  navigator.clipboard.readText().then(text => {
+    document.getElementById('ai-json-inp').value = text;
+    toast('✅ 貼り付けました', 'ok');
+  }).catch(() => {
+    // iPadなどclipboard API非対応の場合はフォーカスして手動貼り付けを促す
+    const ta = document.getElementById('ai-json-inp');
+    ta.focus();
+    ta.select();
+    toast('テキストボックスをタップして長押し→「ペースト」してください', '');
+  });
+}
+function clearJsonInp() {
+  document.getElementById('ai-json-inp').value = '';
+  document.getElementById('ai-json-inp').focus();
+}
+
+function applyAIJson() {
+  const raw = document.getElementById('ai-json-inp').value.trim();
+  if (!raw) { toast('JSONを貼り付けてください', 'err'); return; }
+  try {
+    const m = raw.match(/\{[\s\S]*"regions"[\s\S]*\}/);
+    if (!m) throw new Error('"regions"が見つかりません');
+    const parsed = JSON.parse(m[0]);
+    const regions = parsed.regions || [];
+    if (!regions.length) throw new Error('部位データが空です');
+
+    layers = [];
+    saveUndo();
+    ctxOverlay.clearRect(0, 0, cW, cH);
+
+    for (const r of regions) {
+      const mask = buildMask(r);
+      layers.push({
+        id: r.id, label: r.label,
+        color: r.color, origColor: r.color,
+        mask, rect: r.rect,
+        samples: r.samples, tolerance: r.tolerance || 55
+      });
+      drawLayerToOverlay(layers[layers.length - 1]);
+    }
+
+    buildLayerList();
+    document.getElementById('layers-sec').style.display = 'block';
+    document.getElementById('brush-sec').style.display = 'block';
+    syncReport(); updateSummary();
+    closeAIModal();
+    toast(`✅ ${layers.length}部位のレイヤーを生成しました！`, 'ok');
+  } catch(e) {
+    toast('JSON読み込みエラー: ' + e.message, 'err');
+  }
+}
+
+/* =====================================================
+   MASK GENERATION
+   AI の rect + samples + tolerance を使って
+   その部位のピクセルマスクを生成する
+===================================================== */
+function buildMask(region) {
+  const baseData = ctxPhoto.getImageData(0, 0, cW, cH).data;
+  const mask = new Uint8Array(cW * cH); // 1 = この部位に属する
+
+  const rect = region.rect || {x:0, y:0, width:100, height:100};
+  const x0 = Math.round(rect.x / 100 * cW);
+  const y0 = Math.round(rect.y / 100 * cH);
+  const x1 = Math.min(cW, Math.round((rect.x + rect.width)  / 100 * cW));
+  const y1 = Math.min(cH, Math.round((rect.y + rect.height) / 100 * cH));
+
+  // サンプル点から基準色を集める
+  const samples = region.samples || [];
+  const refs = [];
+  for (const s of samples) {
+    const px = Math.round(s.x / 100 * cW);
+    const py = Math.round(s.y / 100 * cH);
+    if (px >= 0 && px < cW && py >= 0 && py < cH) {
+      const i = (py * cW + px) * 4;
+      refs.push([baseData[i], baseData[i+1], baseData[i+2]]);
+    }
+  }
+  if (refs.length === 0) {
+    const cx = Math.round((x0+x1)/2), cy = Math.round((y0+y1)/2);
+    const i = (cy * cW + cx) * 4;
+    refs.push([baseData[i], baseData[i+1], baseData[i+2]]);
+  }
+
+  // 基準色の平均
+  const avgR = refs.reduce((s,c) => s+c[0], 0) / refs.length;
+  const avgG = refs.reduce((s,c) => s+c[1], 0) / refs.length;
+  const avgB = refs.reduce((s,c) => s+c[2], 0) / refs.length;
+  const tol  = region.tolerance || 55;
+
+  // 矩形内でサンプル色に近いピクセルをマスク
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const i = (y * cW + x) * 4;
+      const dr = baseData[i]   - avgR;
+      const dg = baseData[i+1] - avgG;
+      const db = baseData[i+2] - avgB;
+      if (Math.sqrt(dr*dr + dg*dg + db*db) <= tol) {
+        mask[y * cW + x] = 1;
+      }
+    }
+  }
+  return mask;
+}
+
+/* =====================================================
+   DRAW LAYER TO OVERLAY
+===================================================== */
+function drawLayerToOverlay(layer) {
+  if (!layer.mask) return;
+  // layer.color を RGBA に変換
+  let hex = layer.color.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex, 16);
+  const fr=(n>>16)&255, fg=(n>>8)&255, fb=n&255, fa=Math.round(0.70*255);
+
+  const imgData = ctxOverlay.getImageData(0, 0, cW, cH);
+  const d = imgData.data;
+  for (let i = 0; i < layer.mask.length; i++) {
+    if (layer.mask[i]) {
+      const p = i * 4;
+      d[p]=fr; d[p+1]=fg; d[p+2]=fb; d[p+3]=fa;
+    }
+  }
+  ctxOverlay.putImageData(imgData, 0, 0);
+}
+
+/* =====================================================
+   REDRAW ALL LAYERS
+===================================================== */
+function redrawAllLayers() {
+  ctxOverlay.clearRect(0, 0, cW, cH);
+  for (const layer of layers) drawLayerToOverlay(layer);
+}
+
+/* =====================================================
+   LAYER LIST PANEL
+===================================================== */
+function buildLayerList() {
+  const list = document.getElementById('layer-list');
+  list.innerHTML = '';
+  layers.forEach((l, i) => {
+    const el = document.createElement('div');
+    el.className = 'layer-item' + (i === activeLayerIdx ? ' active' : '');
+    el.id = 'li-' + i;
+    el.innerHTML = `
+      <div class="li-color" id="lc-${i}" style="background:${l.color}"></div>
+      <div class="li-name">${l.label}</div>
+      <div class="li-orig">${l.color.toUpperCase()}</div>
+      <div class="li-actions">
+        <button class="li-act-btn" onclick="applyColorToLayer(${i});event.stopPropagation()">色を変更</button>
+      </div>
+    `;
+    el.onclick = () => selectLayer(i);
+    list.appendChild(el);
+  });
+}
+
+function selectLayer(i) {
+  activeLayerIdx = i;
+  document.querySelectorAll('.layer-item').forEach((el, idx) => el.classList.toggle('active', idx === i));
+  toast(`「${layers[i].label}」を選択 — 色変更ボタンまたはブラシで調整できます`);
+}
+
+async function applyColorToLayer(i) {
+  if (!origImg) return;
+  const layer = layers[i];
+  saveUndo();
+
+  // マスクを使って対象部位を新色で上書き
+  let hex = curColor.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex, 16);
+  const fr=(n>>16)&255, fg=(n>>8)&255, fb=n&255, fa=Math.round(0.70*255);
+
+  const imgData = ctxOverlay.getImageData(0, 0, cW, cH);
+  const d = imgData.data;
+
+  // まずこのレイヤーの古い色を消す（マスク領域をクリア）
+  const oldHex = layer.color.replace('#','');
+  const oldN = parseInt(oldHex.length===3 ? oldHex.split('').map(c=>c+c).join('') : oldHex, 16);
+  const or=(oldN>>16)&255, og=(oldN>>8)&255, ob=oldN&255;
+
+  for (let p = 0; p < layer.mask.length; p++) {
+    if (layer.mask[p]) {
+      const idx = p * 4;
+      d[idx]=fr; d[idx+1]=fg; d[idx+2]=fb; d[idx+3]=fa;
+    }
+  }
+  ctxOverlay.putImageData(imgData, 0, 0);
+
+  // 状態更新
+  layer.color = curColor;
+  document.getElementById('lc-'+i).style.background = curColor;
+  document.getElementById('li-'+i).querySelector('.li-orig').textContent = curColor.toUpperCase();
+  selectLayer(i);
+  syncReport(); updateSummary();
+  toast(`✅ ${layer.label} → ${curColorName}`);
+}
+
+/* =====================================================
+   SUMMARY + SPEC
+===================================================== */
+function updateSummary() {
+  const bar = document.getElementById('sum-bar');
+  bar.innerHTML = '<span class="sum-lbl">配色</span>';
+  const colored = layers.filter(l => l.color !== l.origColor);
+  if (!colored.length && !layers.length) {
+    bar.innerHTML += '<span style="font-size:10px;color:var(--tx3)">写真をアップロードすると表示されます</span>';
+  } else {
+    const show = layers.length ? layers : [];
+    show.forEach(l => {
+      const c = document.createElement('div'); c.className = 'sum-chip';
+      c.innerHTML = `<div class="sum-dot" style="background:${l.color}"></div><span style="color:var(--tx2);font-weight:600">${l.label}</span><span style="font-family:monospace;font-size:9px;color:var(--tx3)">${l.color.toUpperCase()}</span>`;
+      bar.appendChild(c);
+    });
+  }
+  updateSpecRows();
+}
+function updateSpecRows() {
+  const box = document.getElementById('spec-rows');
+  if (!layers.length) { box.innerHTML = '<div class="spec-row" style="color:var(--tx3);font-size:11px;padding:9px 11px">塗装データなし</div>'; return; }
+  box.innerHTML = '';
+  layers.forEach(l => {
+    const r = document.createElement('div'); r.className = 'spec-row';
+    r.innerHTML = `<div class="spec-dot" style="background:${l.color}"></div><div class="spec-part">${l.label}</div><div class="spec-code">${l.color.toUpperCase()}</div>`;
+    box.appendChild(r);
+  });
+}
+
+/* =====================================================
+   REPORT SYNC
+===================================================== */
+function syncReport() {
+  if (!origImg) return;
+  ['before','after'].forEach(type => {
+    const box    = document.getElementById('ba-' + type + '-box');
+    const canvas = document.getElementById('rpt-' + type);
+    const bw = box.clientWidth || 340, bh = box.clientHeight || 255;
+    canvas.width = bw; canvas.height = bh;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(cPhoto, 0, 0, cW, cH, 0, 0, bw, bh);
+    if (type === 'after' && cW > 0) {
+      ctx.drawImage(cOverlay, 0, 0, cW, cH, 0, 0, bw, bh);
+    }
+  });
+}
+
+/* =====================================================
+   PDF
+===================================================== */
+function savePDF() {
+  syncReport();
+  const opt = {
+    margin: 0, filename: '外壁塗装カラー提案書.pdf',
+    image: { type: 'jpeg', quality: 0.96 },
+    html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+  };
+  toast('PDFを生成しています…');
+  html2pdf().set(opt).from(document.getElementById('report-sheet')).save()
+    .then(() => toast('✅ PDFを保存しました', 'ok'))
+    .catch(e => toast('PDFエラー: ' + e.message, 'err'));
+}
+
+/* =====================================================
+   TOAST
+===================================================== */
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+/* =====================================================
+   ① 作業保存・再開
+===================================================== */
+function saveProject() {
+  if (!origImg) { toast('先に写真をアップロードしてください', 'err'); return; }
+  try {
+    const photoData = cPhoto.toDataURL('image/jpeg', 0.82);
+    const overlayData = cOverlay.toDataURL('image/png');
+    const proj = {
+      version: 2,
+      savedAt: new Date().toISOString(),
+      photoData,
+      overlayData,
+      cW, cH,
+      layers: layers.map(l => ({
+        id: l.id, label: l.label,
+        color: l.color, origColor: l.origColor,
+        rect: l.rect, samples: l.samples, tolerance: l.tolerance,
+        mask: l.mask ? Array.from(l.mask) : null
+      })),
+      activeLayerIdx,
+      customerName: document.getElementById('r-cust').value,
+      address:      document.getElementById('r-addr').value,
+      date:         document.getElementById('r-date').value,
+      staff:        document.getElementById('r-staff').value,
+      notes:        document.getElementById('r-notes').value,
+    };
+    localStorage.setItem('sim_project', JSON.stringify(proj));
+    toast('✅ 作業を保存しました（ブラウザに記録）', 'ok');
+  } catch(e) {
+    toast('保存に失敗しました: ' + e.message, 'err');
+  }
+}
+
+function loadProject() {
+  const raw = localStorage.getItem('sim_project');
+  if (!raw) { toast('保存された作業データがありません', 'err'); return; }
+  try {
+    const proj = JSON.parse(raw);
+    const img = new Image();
+    img.onload = () => {
+      origImg = img;
+      resizeAll(proj.cW, proj.cH);
+      ctxPhoto.drawImage(img, 0, 0, proj.cW, proj.cH);
+
+      // Restore overlay
+      const ov = new Image();
+      ov.onload = () => {
+        ctxOverlay.clearRect(0, 0, proj.cW, proj.cH);
+        ctxOverlay.drawImage(ov, 0, 0);
+      };
+      ov.src = proj.overlayData;
+
+      // Restore layers
+      layers = (proj.layers || []).map(l => ({
+        ...l,
+        mask: l.mask ? new Uint8Array(l.mask) : null
+      }));
+      activeLayerIdx = proj.activeLayerIdx || -1;
+
+      // Restore form fields
+      if (proj.customerName) document.getElementById('r-cust').value = proj.customerName;
+      if (proj.address)      document.getElementById('r-addr').value = proj.address;
+      if (proj.date)         document.getElementById('r-date').value = proj.date;
+      if (proj.staff)        document.getElementById('r-staff').value = proj.staff;
+      if (proj.notes)        document.getElementById('r-notes').value = proj.notes;
+
+      document.getElementById('sim-ph').style.display = 'none';
+      document.getElementById('canvas-hint').style.display = 'block';
+      if (layers.length) {
+        document.getElementById('layers-sec').style.display = 'block';
+        document.getElementById('brush-sec').style.display = 'block';
+        buildLayerList();
+      }
+      document.getElementById('ai-btn').disabled = false;
+
+      const dt = new Date(proj.savedAt);
+      syncReport(); updateSummary();
+      toast(`✅ 作業を再開しました（保存日時: ${dt.getMonth()+1}/${dt.getDate()} ${dt.getHours()}:${String(dt.getMinutes()).padStart(2,'0')}）`, 'ok');
+    };
+    img.src = proj.photoData;
+  } catch(e) {
+    toast('データの読み込みに失敗しました: ' + e.message, 'err');
+  }
+}
+
+/* =====================================================
+   ② 画像として保存
+===================================================== */
+function exportImage() {
+  if (!origImg) { toast('先に写真をアップロードしてください', 'err'); return; }
+  // Photo + overlay を合成して PNG でダウンロード
+  const tmp = document.createElement('canvas');
+  tmp.width = cW; tmp.height = cH;
+  const ctx = tmp.getContext('2d');
+  ctx.drawImage(cPhoto, 0, 0);
+  ctx.drawImage(cOverlay, 0, 0);
+  const link = document.createElement('a');
+  link.download = 'カラーシミュレーション_施工後.png';
+  link.href = tmp.toDataURL('image/png');
+  link.click();
+  toast('✅ 画像を保存しました', 'ok');
+}
+
+function exportBeforeAfter() {
+  if (!origImg) { toast('先に写真をアップロードしてください', 'err'); return; }
+  // 横2枚並べた比較画像を生成
+  const pw = cW, ph = cH;
+  const pad = 16, labelH = 32;
+  const tmp = document.createElement('canvas');
+  tmp.width  = pw * 2 + pad * 3;
+  tmp.height = ph + labelH + pad * 2;
+  const ctx = tmp.getContext('2d');
+
+  // 背景
+  ctx.fillStyle = '#F0F2F5';
+  ctx.fillRect(0, 0, tmp.width, tmp.height);
+
+  // 施工前
+  ctx.drawImage(cPhoto, pad, labelH + pad, pw, ph);
+  ctx.fillStyle = '#40506A'; ctx.font = 'bold 14px sans-serif';
+  ctx.fillText('◼ 施工前（現状）', pad, labelH + pad - 6);
+
+  // 施工後
+  const afterX = pw + pad * 2;
+  ctx.drawImage(cPhoto, afterX, labelH + pad, pw, ph);
+  ctx.drawImage(cOverlay, afterX, labelH + pad, pw, ph);
+  ctx.fillStyle = '#1A5CA0';
+  ctx.fillText('◼ 施工後（提案カラー）', afterX, labelH + pad - 6);
+
+  const link = document.createElement('a');
+  link.download = 'カラーシミュレーション_比較.png';
+  link.href = tmp.toDataURL('image/png');
+  link.click();
+  toast('✅ 比較画像を保存しました', 'ok');
+}
+
+/* =====================================================
+   ③ 配色パターン管理
+===================================================== */
+const PT_KEY = 'sim_patterns';
+
+function getPatterns() {
+  try { return JSON.parse(localStorage.getItem(PT_KEY)) || []; }
+  catch { return []; }
+}
+function setPatterns(arr) {
+  localStorage.setItem(PT_KEY, JSON.stringify(arr));
+}
+
+function openPatternModal() {
+  buildPatternGrid();
+  document.getElementById('pt-ov').classList.add('open');
+  document.getElementById('pt-name-inp').value = '';
+}
+function closePtModal() { document.getElementById('pt-ov').classList.remove('open'); }
+function closePtOut(e) { if (e.target === document.getElementById('pt-ov')) closePtModal(); }
+
+function savePattern() {
+  if (!origImg) { toast('先に写真をアップロードしてください', 'err'); return; }
+  const name = document.getElementById('pt-name-inp').value.trim() || `パターン ${new Date().toLocaleDateString('ja')}`;
+
+  // サムネイル生成（縮小合成）
+  const tw = 320, th = Math.round(cH * tw / cW);
+  const tmp = document.createElement('canvas'); tmp.width = tw; tmp.height = th;
+  const ctx = tmp.getContext('2d');
+  ctx.drawImage(cPhoto, 0, 0, tw, th);
+  ctx.drawImage(cOverlay, 0, 0, cW, cH, 0, 0, tw, th);
+  const thumb = tmp.toDataURL('image/jpeg', 0.75);
+
+  const pt = {
+    id:        Date.now(),
+    name,
+    thumb,
+    savedAt:   new Date().toISOString(),
+    overlayData: cOverlay.toDataURL('image/png'),
+    layerColors: layers.map(l => ({ label: l.label, color: l.color }))
+  };
+
+  const patterns = getPatterns();
+  patterns.unshift(pt);
+  if (patterns.length > 20) patterns.pop(); // 最大20件
+  setPatterns(patterns);
+  buildPatternGrid();
+  toast(`✅「${name}」を保存しました`, 'ok');
+  document.getElementById('pt-name-inp').value = '';
+}
+
+function loadPattern(id) {
+  const pt = getPatterns().find(p => p.id === id);
+  if (!pt) return;
+  // オーバーレイを復元
+  const ov = new Image();
+  ov.onload = () => {
+    saveUndo();
+    ctxOverlay.clearRect(0, 0, cW, cH);
+    ctxOverlay.drawImage(ov, 0, 0);
+    // レイヤー色を更新
+    pt.layerColors.forEach(lc => {
+      const layer = layers.find(l => l.label === lc.label);
+      if (layer) {
+        layer.color = lc.color;
+        const idx = layers.indexOf(layer);
+        const lc2 = document.getElementById('lc-'+idx);
+        const lo2 = document.getElementById('li-'+idx);
+        if (lc2) lc2.style.background = lc.color;
+        if (lo2) lo2.querySelector('.li-orig').textContent = lc.color.toUpperCase();
+      }
+    });
+    syncReport(); updateSummary();
+    closePtModal();
+    toast(`✅「${pt.name}」を適用しました`, 'ok');
+  };
+  ov.src = pt.overlayData;
+}
+
+function deletePattern(id) {
+  const patterns = getPatterns().filter(p => p.id !== id);
+  setPatterns(patterns);
+  buildPatternGrid();
+  toast('パターンを削除しました');
+}
+
+function buildPatternGrid() {
+  const grid = document.getElementById('pt-grid');
+  const patterns = getPatterns();
+  if (!patterns.length) {
+    grid.innerHTML = '<div class="pt-empty">まだパターンが保存されていません。<br>下の入力欄に名前を入れて「保存」してください。</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  patterns.forEach(pt => {
+    const d = new Date(pt.savedAt);
+    const dateStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const chips = (pt.layerColors || []).map(lc =>
+      `<div class="pt-chip"><div class="pt-cd" style="background:${lc.color}"></div>${lc.label}</div>`
+    ).join('');
+    const card = document.createElement('div');
+    card.className = 'pt-card';
+    card.innerHTML = `
+      <img class="pt-thumb" src="${pt.thumb}" alt="${pt.name}">
+      <div class="pt-badge">${dateStr}</div>
+      <div class="pt-card-body">
+        <div class="pt-card-name">${pt.name}</div>
+        <div class="pt-chips">${chips}</div>
+        <div class="pt-acts">
+          <button class="pt-load" onclick="loadPattern(${pt.id})">この配色を適用</button>
+          <button class="pt-del"  onclick="deletePattern(${pt.id})">削除</button>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+/* =====================================================
+   INIT
+===================================================== */
+(function init() {
+  const d = new Date();
+  document.getElementById('r-date').placeholder = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+  pickColor('#F5F0DC', 'アイボリー');
+  window.addEventListener('resize', () => { if (origImg) syncReport(); });
+})();
+</script>
+</body>
+</html>
