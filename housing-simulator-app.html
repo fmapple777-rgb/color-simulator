@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="カラーシミュレーター">
+<meta name="mobile-web-app-capable" content="yes">
+<title>住宅カラーシミュレーター</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+/* ===========================
+   RESET & TOKENS
+=========================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #ECF0F5;
+  --surface:   #FFFFFF;
+  --surface2:  #F4F7FB;
+  --border:    #DDE3EC;
+  --border2:   #C5CDD9;
+  --accent:    #1A5CA0;
+  --accent-lt: #E8F1FB;
+  --accent-dk: #103D70;
+  --gold:      #C48C20;
+  --gold-lt:   #FDF3E0;
+  --green:     #1A7A42;
+  --green-lt:  #E6F6ED;
+  --red:       #B83030;
+  --red-lt:    #FCEAEA;
+  --purple:    #6040A8;
+  --text:      #18202E;
+  --text2:     #40506A;
+  --text3:     #7A8898;
+  --sh1:       0 1px 3px rgba(0,0,0,.07);
+  --sh2:       0 4px 14px rgba(0,0,0,.10);
+  --sh3:       0 8px 28px rgba(0,0,0,.13);
+  --r:         12px;
+  --rs:        7px;
+}
+
+html { height: 100%; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Yu Gothic', BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100%;
+  overscroll-behavior: none;
+}
+button, input, textarea, select { font-family: inherit; }
+
+/* ===========================
+   TOPBAR
+=========================== */
+.topbar {
+  background: var(--accent-dk);
+  color: #fff;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,.22);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  min-height: 52px;
+}
+.tb-brand { display:flex; align-items:center; gap:10px; }
+.tb-icon {
+  width:34px; height:34px; background:var(--gold);
+  border-radius:8px; display:flex; align-items:center;
+  justify-content:center; font-size:19px; flex-shrink:0;
+}
+.tb-title  { font-size:15px; font-weight:700; letter-spacing:.03em; }
+.tb-sub    { font-size:10px; opacity:.6; letter-spacing:.1em; margin-top:1px; }
+.tb-right  { display:flex; align-items:center; gap:8px; }
+.tb-api-btn {
+  display:flex; align-items:center; gap:5px;
+  background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.22);
+  color:#fff; border-radius:6px; padding:6px 12px;
+  font-size:11px; font-weight:600; cursor:pointer;
+  transition:background .2s;
+}
+.tb-api-btn:hover { background:rgba(255,255,255,.22); }
+.tb-api-btn.connected { background:rgba(30,160,80,.35); border-color:rgba(80,220,120,.4); }
+.tb-api-dot { width:7px; height:7px; border-radius:50%; background:#aaa; }
+.tb-api-dot.on { background:#4DE880; }
+
+/* ===========================
+   API KEY MODAL
+=========================== */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(10,20,40,.65);
+  display:flex; align-items:center; justify-content:center;
+  z-index:500; padding:20px;
+  backdrop-filter:blur(3px);
+  opacity:0; pointer-events:none;
+  transition:opacity .25s;
+}
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal-box {
+  background:#fff; border-radius:var(--r);
+  box-shadow:var(--sh3);
+  width:100%; max-width:480px;
+  padding:28px 28px 24px;
+  transform:translateY(16px);
+  transition:transform .25s;
+}
+.modal-overlay.open .modal-box { transform:translateY(0); }
+.modal-title { font-size:17px; font-weight:700; margin-bottom:6px; }
+.modal-desc  { font-size:12px; color:var(--text2); line-height:1.7; margin-bottom:18px; }
+.modal-desc a { color:var(--accent); }
+.modal-label { font-size:11px; font-weight:700; color:var(--text2); margin-bottom:5px; display:block; }
+.modal-input-wrap { position:relative; margin-bottom:14px; }
+.modal-input-wrap input {
+  width:100%; border:1.5px solid var(--border2); border-radius:var(--rs);
+  padding:10px 40px 10px 12px; font-size:13px; outline:none;
+  transition:border-color .2s;
+  background:var(--surface2);
+}
+.modal-input-wrap input:focus { border-color:var(--accent); background:#fff; }
+.modal-eye {
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  background:none; border:none; cursor:pointer; font-size:16px; color:var(--text3);
+  padding:4px;
+}
+.modal-info-box {
+  background:var(--accent-lt); border:1px solid #BCD0EE;
+  border-radius:var(--rs); padding:10px 12px;
+  font-size:11px; color:#183060; line-height:1.7; margin-bottom:16px;
+}
+.modal-btns { display:flex; gap:8px; justify-content:flex-end; }
+.modal-btn-cancel {
+  background:transparent; border:1px solid var(--border2);
+  border-radius:var(--rs); padding:9px 18px; font-size:12px;
+  cursor:pointer; color:var(--text2); transition:background .15s;
+}
+.modal-btn-cancel:hover { background:var(--surface2); }
+.modal-btn-save {
+  background:var(--accent); color:#fff; border:none;
+  border-radius:var(--rs); padding:9px 20px; font-size:12px;
+  font-weight:700; cursor:pointer; transition:background .15s;
+}
+.modal-btn-save:hover { background:var(--accent-dk); }
+
+/* ===========================
+   MAIN LAYOUT
+=========================== */
+.app-wrap {
+  display:flex; gap:0;
+  max-width:1560px; margin:0 auto;
+  padding:0;
+  align-items:flex-start;
+}
+
+/* ===========================
+   LEFT PANEL (sidebar)
+=========================== */
+.left-panel {
+  width:270px;
+  flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  min-height:calc(100vh - 52px);
+  display:flex;
+  flex-direction:column;
+  overflow-y:auto;
+  overflow-x:hidden;
+  position:sticky;
+  top:52px;
+  height:calc(100vh - 52px);
+}
+.left-panel::-webkit-scrollbar { width:4px; }
+.left-panel::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+.panel-section {
+  padding:16px;
+  border-bottom:1px solid var(--border);
+}
+.section-title {
+  display:flex; align-items:center; gap:7px;
+  font-size:10px; font-weight:700; color:var(--text3);
+  letter-spacing:.1em; text-transform:uppercase;
+  margin-bottom:12px;
+}
+.section-n {
+  width:18px; height:18px; background:var(--accent); color:#fff;
+  border-radius:50%; font-size:10px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+
+/* Upload zone */
+/* ===== UPLOAD ZONE — iPad Safari 完全対応版 =====
+   input[type=file] を label で直接ラップする方式。
+   display:none や .click() は使わない。
+   これが全ブラウザ・全OS で最も確実な方法。
+====================================================*/
+.upload-label {
+  display:block;
+  border:2px dashed var(--border2); border-radius:var(--rs);
+  padding:20px 12px; text-align:center;
+  background:var(--surface2);
+  transition:border-color .2s, background .2s;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.upload-label:hover,
+.upload-label.over {
+  border-color:var(--accent); background:var(--accent-lt);
+}
+/* input 自体を label の中に入れて見せる */
+.upload-label input[type=file] {
+  /* サイズ0にせず、1pxでも表示領域を確保するのがiPadでの鉄則 */
+  position:absolute;
+  width:1px; height:1px;
+  opacity:0;
+  overflow:hidden;
+  /* clip ではなく transform で視覚的に隠す */
+  transform:scale(0);
+}
+.uz-icon { font-size:28px; margin-bottom:6px; pointer-events:none; }
+.uz-main-btn {
+  display:inline-flex; align-items:center; gap:7px;
+  background:var(--accent); color:#fff;
+  border-radius:var(--rs);
+  padding:12px 24px; font-size:14px; font-weight:700;
+  margin:8px 0 6px;
+  box-shadow:0 2px 8px rgba(26,92,160,.3);
+  pointer-events:none; /* label がクリックを受ける */
+  letter-spacing:.03em;
+}
+.uz-sub { font-size:10px; color:var(--text3); pointer-events:none; }
+.upload-name {
+  font-size:10px; color:var(--text3); margin-top:6px;
+  text-align:center; word-break:break-all; display:none;
+}
+
+/* Palette */
+.palette-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:10px;
+}
+.p-chip { display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; }
+.p-sw {
+  width:100%; aspect-ratio:1; border-radius:6px;
+  border:2.5px solid transparent; box-shadow:0 1px 4px rgba(0,0,0,.13);
+  transition:transform .14s, border-color .14s;
+}
+.p-sw:hover  { transform:scale(1.09); }
+.p-sw.sel    { border-color:var(--accent); transform:scale(1.1); box-shadow:0 0 0 3px rgba(26,92,160,.18); }
+.p-nm        { font-size:9px; color:var(--text3); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; }
+
+.cust-row {
+  display:flex; align-items:center; gap:7px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--rs); padding:7px 10px; margin-bottom:9px;
+}
+.cust-row label { font-size:10px; color:var(--text2); font-weight:600; white-space:nowrap; }
+.cust-row input[type=color] { width:30px; height:24px; border:none; background:none; cursor:pointer; padding:0; border-radius:3px; }
+
+.sel-disp {
+  display:flex; align-items:center; gap:9px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--rs); padding:9px 11px;
+}
+.sel-sw  { width:38px; height:38px; border-radius:6px; border:1px solid rgba(0,0,0,.09); box-shadow:var(--sh1); flex-shrink:0; transition:background .2s; }
+.sel-nm  { font-size:13px; font-weight:700; }
+.sel-cd  { font-size:11px; color:var(--text2); font-family:monospace; margin-top:2px; }
+
+/* Tool buttons */
+.tool-row { display:flex; gap:5px; margin-bottom:9px; }
+.tool-btn {
+  flex:1; display:flex; align-items:center; justify-content:center; gap:4px;
+  background:var(--surface2); border:1.5px solid var(--border);
+  border-radius:var(--rs); padding:7px 4px;
+  font-size:11px; cursor:pointer; color:var(--text2);
+  transition:all .15s; white-space:nowrap;
+}
+.tool-btn:hover  { border-color:var(--accent); color:var(--accent); }
+.tool-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+.slider-row {
+  display:flex; align-items:center; gap:7px; margin-bottom:7px;
+}
+.slider-row label { font-size:10px; color:var(--text2); white-space:nowrap; min-width:56px; }
+.slider-row input[type=range] { flex:1; accent-color:var(--accent); height:4px; }
+.slider-row span  { font-size:10px; color:var(--text3); min-width:32px; text-align:right; }
+
+/* Region list */
+.region-list { display:flex; flex-direction:column; gap:5px; }
+.reg-item {
+  display:flex; align-items:center; gap:7px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--rs); padding:7px 9px; cursor:pointer;
+  font-size:11px; transition:all .14s;
+}
+.reg-item:hover  { border-color:var(--accent); background:var(--accent-lt); }
+.reg-item.active { border-color:var(--accent); background:var(--accent-lt); font-weight:700; color:var(--accent); }
+.reg-dot  { width:11px; height:11px; border-radius:50%; border:1.5px solid rgba(0,0,0,.1); flex-shrink:0; }
+.reg-lbl  { flex:1; color:var(--text2); }
+.reg-code { font-family:monospace; font-size:10px; color:var(--text3); }
+
+.info-pill {
+  border-radius:var(--rs); padding:8px 11px;
+  font-size:11px; line-height:1.7; border:1px solid;
+}
+.info-pill.blue   { background:var(--accent-lt); border-color:#BDD0EE; color:#183060; }
+.info-pill.gold   { background:var(--gold-lt);   border-color:#EDD890; color:#604A08; }
+.info-pill.green  { background:var(--green-lt);  border-color:#90D8B0; color:#0E3E22; }
+
+/* ===========================
+   RIGHT AREA
+=========================== */
+.right-col {
+  flex:1; min-width:0;
+  display:flex; flex-direction:column;
+  gap:0;
+}
+
+/* Stage area */
+.sim-card { border-bottom:1px solid var(--border); }
+
+.stage-bar {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 16px; border-bottom:1px solid var(--border);
+  background:var(--surface); flex-wrap:wrap; gap:6px;
+}
+.bar-label { font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.08em; text-transform:uppercase; margin-right:4px; }
+
+.ai-btn {
+  display:inline-flex; align-items:center; gap:6px;
+  background:linear-gradient(135deg,#7040C0,#1A5CA0);
+  color:#fff; border:none; border-radius:var(--rs);
+  padding:7px 14px; font-size:11px; font-weight:700;
+  cursor:pointer; letter-spacing:.04em;
+  box-shadow:0 2px 8px rgba(112,64,192,.3);
+  transition:filter .15s, transform .1s;
+  white-space:nowrap;
+}
+.ai-btn:hover    { filter:brightness(1.1); }
+.ai-btn:active   { transform:scale(.97); }
+.ai-btn:disabled { opacity:.45; cursor:not-allowed; }
+
+.icon-btn {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--rs); padding:6px 11px;
+  font-size:11px; cursor:pointer; color:var(--text2);
+  transition:all .14s; white-space:nowrap;
+}
+.icon-btn:hover        { border-color:var(--accent); color:var(--accent); }
+.icon-btn.del:hover    { border-color:var(--red);    color:var(--red);    }
+.spacer { flex:1; }
+
+/* AI status ribbon */
+.ai-ribbon {
+  display:none; align-items:center; gap:8px;
+  padding:7px 16px; background:linear-gradient(90deg,#EEE8F8,#E8F0FB);
+  border-bottom:1px solid #D0C0EC; font-size:11px; color:#5030A0;
+}
+.ai-ribbon.show { display:flex; }
+.spin {
+  width:13px; height:13px;
+  border:2px solid rgba(80,48,160,.18);
+  border-top-color:#5030A0; border-radius:50%;
+  animation:sp .7s linear infinite; flex-shrink:0;
+}
+@keyframes sp { to { transform:rotate(360deg); } }
+
+/* Canvas wrap */
+.sim-body {
+  padding:14px 16px 16px;
+  background:var(--surface);
+}
+.sim-outer {
+  position:relative;
+  background:#1C2533;
+  border-radius:var(--rs);
+  overflow:hidden;
+  line-height:0;
+  min-height:180px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:var(--sh2);
+}
+.sim-outer canvas { display:block; max-width:100%; touch-action:none; }
+#base-canvas { position:absolute; top:0; left:0; }
+#paint-canvas { position:relative; z-index:2; cursor:crosshair; }
+
+.sim-ph {
+  text-align:center; color:rgba(255,255,255,.32);
+  padding:50px 24px; pointer-events:none; position:relative; z-index:1;
+}
+.sim-ph-icon { font-size:38px; margin-bottom:10px; }
+.sim-ph-txt  { font-size:12px; line-height:1.9; }
+
+.canvas-hint {
+  display:none; font-size:10px; color:var(--text3);
+  margin-top:6px; text-align:right; padding-right:2px;
+}
+
+/* Loading overlay */
+.lo {
+  position:absolute; inset:0;
+  background:rgba(16,28,52,.72);
+  display:none; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:12px; color:#fff; font-size:12px;
+  border-radius:var(--rs); z-index:50;
+}
+.lo.show { display:flex; }
+.lo-spin {
+  width:34px; height:34px;
+  border:3px solid rgba(255,255,255,.18);
+  border-top-color:#fff; border-radius:50%;
+  animation:sp .8s linear infinite;
+}
+
+/* Color summary */
+.summary-bar {
+  padding:10px 16px; background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  min-height:42px;
+}
+.sum-label { font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.08em; white-space:nowrap; }
+.sum-chip {
+  display:flex; align-items:center; gap:5px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:5px; padding:3px 9px; font-size:10px;
+}
+.sum-dot { width:10px; height:10px; border-radius:50%; border:1px solid rgba(0,0,0,.1); }
+
+/* ===========================
+   REPORT SECTION
+=========================== */
+.report-header-bar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:11px 16px; background:var(--surface);
+  border-bottom:1px solid var(--border);
+}
+.rh-left { display:flex; align-items:center; gap:7px; }
+.rh-icon {
+  width:22px; height:22px; background:var(--accent-lt); color:var(--accent);
+  border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:12px;
+}
+.rh-title { font-size:11px; font-weight:700; color:var(--text2); letter-spacing:.08em; text-transform:uppercase; }
+
+.pdf-btn {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--accent); color:#fff; border:none;
+  border-radius:var(--rs); padding:8px 16px;
+  font-size:11px; font-weight:700; cursor:pointer;
+  box-shadow:0 2px 7px rgba(26,92,160,.28); letter-spacing:.03em;
+  transition:background .15s, transform .1s;
+}
+.pdf-btn:hover  { background:var(--accent-dk); }
+.pdf-btn:active { transform:scale(.97); }
+
+/* A4 wrapper */
+.a4-wrap { overflow-x:auto; padding:14px 16px; background:var(--bg); }
+.a4-wrap::-webkit-scrollbar { height:5px; }
+.a4-wrap::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+/* ===========================
+   REPORT SHEET (A4 landscape)
+=========================== */
+#report-sheet {
+  width:1040px; min-height:690px;
+  background:#fff; border:1px solid var(--border2);
+  border-radius:4px; box-shadow:var(--sh2);
+  font-family:-apple-system,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;
+  overflow:hidden;
+}
+.rs-head {
+  background:var(--accent-dk); color:#fff;
+  padding:12px 24px; display:flex; align-items:center; justify-content:space-between;
+}
+.rs-main-title { font-size:14px; font-weight:700; letter-spacing:.05em; }
+.rs-sub-title  { font-size:10px; opacity:.6; margin-top:2px; letter-spacing:.1em; }
+.rs-logo       { text-align:right; font-size:10px; opacity:.6; line-height:1.6; }
+.gold-bar      { height:3px; background:linear-gradient(90deg,var(--gold),#F0C060,var(--gold)); }
+
+.rs-info-bar {
+  display:flex; align-items:center;
+  padding:8px 24px; background:var(--surface2); border-bottom:1px solid var(--border);
+}
+.rs-field { display:flex; align-items:center; gap:6px; padding-right:18px; margin-right:18px; border-right:1px solid var(--border2); }
+.rs-field:last-child { border-right:none; }
+.rs-field label { font-size:10px; color:var(--text2); font-weight:700; white-space:nowrap; letter-spacing:.04em; }
+.rs-field input {
+  border:none; border-bottom:1.5px solid var(--border2);
+  background:transparent; font-size:12px; font-family:inherit;
+  color:var(--text); padding:1px 3px; outline:none; width:125px;
+  transition:border-color .2s;
+}
+.rs-field input:focus { border-color:var(--accent); }
+
+.rs-body { display:flex; gap:0; padding:14px 24px; }
+.ba-col  { flex:1; display:flex; flex-direction:column; gap:5px; }
+.ba-gap  { width:16px; flex-shrink:0; }
+.ba-lbl  { font-size:10px; font-weight:700; letter-spacing:.1em; padding:3px 9px; border-radius:3px; text-align:center; }
+.ba-lbl.before { background:#F0F2F6; color:var(--text2); border:1px solid var(--border); }
+.ba-lbl.after  { background:var(--accent-lt); color:var(--accent); border:1px solid #BCD0EE; }
+.ba-box  {
+  width:100%; aspect-ratio:4/3;
+  border:1px solid var(--border2); border-radius:3px;
+  overflow:hidden; background:#CDD3DC; position:relative;
+}
+.ba-box canvas { width:100%; height:100%; object-fit:cover; display:block; }
+.ba-note { font-size:9px; text-align:center; padding-top:3px; color:var(--text3); }
+
+.rs-info-col { width:215px; flex-shrink:0; margin-left:16px; display:flex; flex-direction:column; gap:9px; }
+.spec-box { border:1px solid var(--border); border-radius:var(--rs); overflow:hidden; }
+.spec-head { background:var(--accent-dk); color:#fff; font-size:10px; font-weight:700; padding:6px 11px; letter-spacing:.07em; }
+.spec-row  { display:flex; align-items:center; gap:6px; padding:5px 9px; border-bottom:1px solid var(--border); font-size:11px; }
+.spec-row:last-child { border-bottom:none; }
+.spec-dot  { width:13px; height:13px; border-radius:50%; border:1.5px solid rgba(0,0,0,.1); flex-shrink:0; }
+.spec-part { color:var(--text2); font-weight:600; flex:1; }
+.spec-code { font-family:monospace; font-size:10px; color:var(--text3); }
+
+.notes-box { border:1px solid var(--border); border-radius:var(--rs); overflow:hidden; }
+.notes-head { background:var(--surface2); color:var(--text2); font-size:10px; font-weight:700; padding:6px 11px; border-bottom:1px solid var(--border); letter-spacing:.05em; }
+.notes-box textarea { width:100%; height:88px; border:none; resize:none; font-size:11px; font-family:inherit; color:var(--text); padding:7px 10px; outline:none; line-height:1.7; background:#fff; }
+
+.rs-footer {
+  border-top:1px solid var(--border); padding:7px 24px;
+  display:flex; justify-content:space-between; align-items:center;
+  background:var(--surface2);
+}
+.rs-footer-note { font-size:9px; color:var(--text3); line-height:1.5; }
+.rs-stamp { width:46px; height:46px; border-radius:50%; border:2px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:8px; color:var(--text3); text-align:center; line-height:1.3; }
+
+/* ===========================
+   TOAST
+=========================== */
+.toast {
+  position:fixed; bottom:24px; left:50%;
+  transform:translateX(-50%) translateY(12px);
+  background:var(--accent-dk); color:#fff;
+  font-size:12px; font-weight:600; padding:10px 22px;
+  border-radius:22px; opacity:0; pointer-events:none;
+  box-shadow:0 4px 16px rgba(0,0,0,.22);
+  transition:opacity .24s, transform .24s;
+  white-space:nowrap; z-index:9999; max-width:90vw; text-align:center;
+}
+.toast.show  { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.err   { background:var(--red); }
+.toast.ok    { background:var(--green); }
+
+/* ===========================
+   MOBILE / TABLET RESPONSIVE
+=========================== */
+@media (max-width: 900px) {
+  .app-wrap { flex-direction:column; }
+  .left-panel {
+    width:100%; min-height:auto; height:auto;
+    position:static; border-right:none; border-bottom:1px solid var(--border);
+    flex-direction:row; flex-wrap:wrap; overflow-x:hidden; overflow-y:visible;
+  }
+  .panel-section { flex:1; min-width:240px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); }
+  .panel-section:last-child { border-right:none; }
+}
+@media (max-width: 600px) {
+  .topbar { padding:8px 14px; }
+  .tb-title { font-size:14px; }
+  .tb-sub   { display:none; }
+  .left-panel { flex-direction:column; }
+  .panel-section { min-width:auto; width:100%; }
+  .stage-bar { padding:8px 12px; }
+  .ai-btn    { font-size:10px; padding:6px 10px; }
+  .icon-btn  { font-size:10px; padding:5px 8px; }
+  .sim-body  { padding:10px 12px 12px; }
+}
+/* iPadOS pointer */
+@media (pointer: coarse) {
+  .p-sw      { border-width:3px; }
+  .tool-btn  { padding:9px 6px; }
+  .reg-item  { padding:9px 10px; }
+  .icon-btn  { padding:8px 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== TOPBAR ===== -->
+<div class="topbar">
+  <div class="tb-brand">
+    <div class="tb-icon">🏠</div>
+    <div>
+      <div class="tb-title">住宅カラーシミュレーター</div>
+      <div class="tb-sub">REAL PHOTO COLOR PLANNING SYSTEM</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <button class="tb-api-btn" id="api-btn" onclick="openApiModal()">
+      <div class="tb-api-dot" id="api-dot"></div>
+      <span id="api-btn-label">APIキー設定</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===== API KEY MODAL ===== -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal-box">
+    <div class="modal-title">🔑 Anthropic APIキーの設定</div>
+    <div class="modal-desc">
+      AI自動認識機能を使うには、Anthropic APIキーが必要です。<br>
+      キーは <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> から取得できます。<br>
+      入力したキーはこのブラウザにのみ保存され、外部には送信されません。
+    </div>
+    <label class="modal-label" for="api-key-input">APIキー（sk-ant-… から始まる文字列）</label>
+    <div class="modal-input-wrap">
+      <input type="password" id="api-key-input" placeholder="sk-ant-api03-xxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+      <button class="modal-eye" onclick="toggleKeyVisible()" id="eye-btn" title="表示/非表示">👁️</button>
+    </div>
+    <div class="modal-info-box">
+      💡 <strong>このファイルについて：</strong><br>
+      HTMLファイルをダブルクリックするだけでブラウザで開けます。<br>
+      Mac・Windows・iPad すべてで動作します。<br>
+      APIキーはブラウザの <code>localStorage</code> に保存され、他の端末やサイトには共有されません。
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="modal-btn-save"   onclick="saveApiKey()">保存して閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP WRAP ===== -->
+<div class="app-wrap">
+
+<!-- ===== LEFT PANEL ===== -->
+<div class="left-panel">
+
+  <!-- S1: Upload -->
+  <div class="panel-section">
+    <div class="section-title"><div class="section-n">1</div>写真をアップロード</div>
+    <!--
+      iPad Safari 完全対応：
+      input[type=file] を <label> で直接ラップする。
+      これがすべてのブラウザ・OSで最も確実な方法。
+      display:none や .click() は使わない。
+    -->
+    <label class="upload-label" id="upload-label">
+      <input type="file" id="file-input"
+             accept="image/*"
+             onchange="loadFile(event)">
+      <div class="uz-icon">📷</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">タップして写真を選ぶ</div>
+      <div class="uz-main-btn">📂 写真を選ぶ</div>
+      <div class="uz-sub">JPG / PNG / HEIC 対応</div>
+    </label>
+    <div class="upload-name" id="upload-name"></div>
+  </div>
+
+  <!-- S2: Color -->
+  <div class="panel-section">
+    <div class="section-title"><div class="section-n">2</div>カラーを選択</div>
+    <div class="palette-grid" id="palette">
+      <div class="p-chip" onclick="pickColor('#F5F5F0','ピュアホワイト')"><div class="p-sw" style="background:#F5F5F0;border:1px solid #ccc;"></div><div class="p-nm">ホワイト</div></div>
+      <div class="p-chip" onclick="pickColor('#F5F0DC','アイボリー')"><div class="p-sw" style="background:#F5F0DC;"></div><div class="p-nm">アイボリー</div></div>
+      <div class="p-chip" onclick="pickColor('#E0D0B0','ライトベージュ')"><div class="p-sw" style="background:#E0D0B0;"></div><div class="p-nm">L.ベージュ</div></div>
+      <div class="p-chip" onclick="pickColor('#C8A878','サンドベージュ')"><div class="p-sw" style="background:#C8A878;"></div><div class="p-nm">サンドBG</div></div>
+      <div class="p-chip" onclick="pickColor('#A07850','キャメル')"><div class="p-sw" style="background:#A07850;"></div><div class="p-nm">キャメル</div></div>
+      <div class="p-chip" onclick="pickColor('#6A4828','ダークブラウン')"><div class="p-sw" style="background:#6A4828;"></div><div class="p-nm">D.ブラウン</div></div>
+      <div class="p-chip" onclick="pickColor('#708090','スレートグレー')"><div class="p-sw" style="background:#708090;"></div><div class="p-nm">スレートGY</div></div>
+      <div class="p-chip" onclick="pickColor('#3C3C3C','チャコール')"><div class="p-sw" style="background:#3C3C3C;"></div><div class="p-nm">チャコール</div></div>
+      <div class="p-chip" onclick="pickColor('#5A7090','スチールブルー')"><div class="p-sw" style="background:#5A7090;"></div><div class="p-nm">スチールBL</div></div>
+      <div class="p-chip" onclick="pickColor('#487860','フォレストG')"><div class="p-sw" style="background:#487860;"></div><div class="p-nm">フォレスト</div></div>
+      <div class="p-chip" onclick="pickColor('#AA4828','テラコッタ')"><div class="p-sw" style="background:#AA4828;"></div><div class="p-nm">テラコッタ</div></div>
+      <div class="p-chip" onclick="pickColor('#181818','マットブラック')"><div class="p-sw" style="background:#181818;"></div><div class="p-nm">マットBK</div></div>
+    </div>
+    <div class="cust-row">
+      <label>カスタム:</label>
+      <input type="color" id="cust-color" value="#F5F0DC" oninput="pickColor(this.value,'カスタム '+this.value.toUpperCase())">
+      <span id="cust-hex" style="font-family:monospace;font-size:10px;color:var(--text2);">#F5F0DC</span>
+    </div>
+    <div class="sel-disp">
+      <div class="sel-sw" id="sel-sw" style="background:#F5F0DC;"></div>
+      <div>
+        <div class="sel-nm" id="sel-nm">アイボリー</div>
+        <div class="sel-cd" id="sel-cd">#F5F0DC</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3: Tool -->
+  <div class="panel-section">
+    <div class="section-title"><div class="section-n">3</div>ブラシ設定</div>
+    <div class="tool-row">
+      <button class="tool-btn active" id="tb-brush"  onclick="setTool('brush')">🖌️ ブラシ</button>
+      <button class="tool-btn"        id="tb-eraser" onclick="setTool('eraser')">🧹 消し</button>
+      <button class="tool-btn"        id="tb-fill"   onclick="setTool('fill')">🪣 塗潰</button>
+    </div>
+    <div class="slider-row">
+      <label>サイズ</label>
+      <input type="range" id="br-size" min="5" max="100" value="24" oninput="updBrush()">
+      <span id="br-size-v">24px</span>
+    </div>
+    <div class="slider-row">
+      <label>不透明度</label>
+      <input type="range" id="br-opa" min="20" max="100" value="72" oninput="updOpa()">
+      <span id="br-opa-v">72%</span>
+    </div>
+    <div class="info-pill blue" style="margin-top:6px;font-size:10px;">
+      <strong>ブラシ</strong>…なぞって塗る　<strong>消し</strong>…はみ出しを消す　<strong>塗潰</strong>…クリックで一括塗装
+    </div>
+  </div>
+
+  <!-- S4: AI Regions (shown after AI runs) -->
+  <div class="panel-section" id="regions-section" style="display:none;">
+    <div class="section-title"><div class="section-n" style="background:var(--purple);">AI</div>AI認識エリア</div>
+    <div class="info-pill gold" style="margin-bottom:9px;">部位をクリック → 左のカラーで色を変更</div>
+    <div class="region-list" id="region-list"></div>
+  </div>
+
+</div>
+<!-- end left-panel -->
+
+
+<!-- ===== RIGHT COL ===== -->
+<div class="right-col">
+
+  <!-- Simulator -->
+  <div class="sim-card">
+    <div class="stage-bar">
+      <span class="bar-label">シミュレーター</span>
+      <button class="ai-btn" id="ai-btn" onclick="runAI()" disabled>✨ AIで部位を自動認識</button>
+      <div class="spacer"></div>
+      <button class="icon-btn" onclick="undo()" title="元に戻す">↩ 戻す</button>
+      <button class="icon-btn" onclick="redo()" title="やり直す">↪ やり直す</button>
+      <button class="icon-btn del" onclick="clearPaint()" title="塗装クリア">🗑 クリア</button>
+    </div>
+
+    <div class="ai-ribbon" id="ai-ribbon">
+      <div class="spin"></div>
+      <span id="ai-ribbon-msg">AIが住宅写真を解析しています…</span>
+    </div>
+
+    <div class="sim-body">
+      <div class="sim-outer" id="sim-outer">
+        <canvas id="base-canvas"></canvas>
+        <canvas id="paint-canvas"></canvas>
+        <div class="sim-ph" id="sim-ph">
+          <div class="sim-ph-icon">🏠</div>
+          <div class="sim-ph-txt">住宅写真をアップロードすると<br>ここにシミュレーターが表示されます</div>
+        </div>
+        <div class="lo" id="lo">
+          <div class="lo-spin"></div>
+          <span id="lo-msg">AI解析中…</span>
+        </div>
+      </div>
+      <div class="canvas-hint" id="canvas-hint">🖌️ キャンバスをなぞって塗装 ／ AIボタンで部位を自動検出</div>
+    </div>
+  </div>
+
+  <!-- Color summary -->
+  <div class="summary-bar" id="summary-bar">
+    <span class="sum-label">配色</span>
+    <span style="font-size:10px;color:var(--text3);">塗装すると自動表示されます</span>
+  </div>
+
+  <!-- Report -->
+  <div>
+    <div class="report-header-bar">
+      <div class="rh-left">
+        <div class="rh-icon">📄</div>
+        <div class="rh-title">施工前・施工後 提案シート（A4横）</div>
+      </div>
+      <button class="pdf-btn" onclick="savePDF()">⬇ 提案シートをPDFで保存</button>
+    </div>
+
+    <div class="a4-wrap">
+      <div id="report-sheet">
+        <div class="rs-head">
+          <div>
+            <div class="rs-main-title">御満足いただける住まいへ　外壁塗装カラーシミュレーション御提案書</div>
+            <div class="rs-sub-title">EXTERIOR PAINTING COLOR SIMULATION PROPOSAL</div>
+          </div>
+          <div class="rs-logo">株式会社〇〇リフォーム<br>TEL: 0120-XXX-XXX<br>営業担当</div>
+        </div>
+        <div class="gold-bar"></div>
+        <div class="rs-info-bar">
+          <div class="rs-field"><label>お客様名</label><input type="text" placeholder="山田 太郎　様" id="r-cust"></div>
+          <div class="rs-field"><label>御住所</label><input type="text" placeholder="東京都〇〇区〇〇1-2-3" id="r-addr" style="width:165px;"></div>
+          <div class="rs-field"><label>作成日</label><input type="text" id="r-date" style="width:105px;"></div>
+          <div class="rs-field"><label>担当者名</label><input type="text" placeholder="鈴木 花子" id="r-staff"></div>
+        </div>
+        <div class="rs-body">
+          <div class="ba-col">
+            <div class="ba-lbl before">◼ 施工前（現状）</div>
+            <div class="ba-box" id="ba-before-box"><canvas id="rpt-before"></canvas></div>
+            <div class="ba-note">※現状の外壁カラーを示しています</div>
+          </div>
+          <div class="ba-gap"></div>
+          <div class="ba-col">
+            <div class="ba-lbl after">◼ 施工後（提案カラー）</div>
+            <div class="ba-box" id="ba-after-box"><canvas id="rpt-after"></canvas></div>
+            <div class="ba-note" style="color:var(--accent);font-weight:700;">※シミュレーターの提案カラーです</div>
+          </div>
+          <div class="rs-info-col">
+            <div class="spec-box">
+              <div class="spec-head">🎨 使用カラー仕様</div>
+              <div id="spec-rows">
+                <div class="spec-row" style="color:var(--text3);font-size:11px;padding:9px 11px;">塗装データなし</div>
+              </div>
+            </div>
+            <div class="notes-box">
+              <div class="notes-head">📝 担当者コメント・備考</div>
+              <textarea id="r-notes" placeholder="例）外壁はアイボリー系で統一し、屋根は落ち着いたブラウンをご提案しております。"></textarea>
+            </div>
+            <div style="font-size:9px;color:var(--text3);line-height:1.6;padding:2px;">
+              ※本提案書はカラーシミュレーション用資料です。実際の仕上がり色は塗料メーカーのサンプルで必ずご確認ください。
+            </div>
+          </div>
+        </div>
+        <div class="rs-footer">
+          <div class="rs-footer-note">
+            本資料は外壁塗装カラーシミュレーション御提案書です。ご不明な点はお気軽に担当者までお問い合わせください。<br>
+            〒000-0000　東京都〇〇区〇〇1-2-3　TEL: 0120-XXX-XXX　FAX: 0X-XXXX-XXXX
+          </div>
+          <div class="rs-stamp">確認印<br>欄</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<!-- end right-col -->
+</div>
+<!-- end app-wrap -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   API KEY — stored in localStorage
+   ============================================================ */
+let API_KEY = localStorage.getItem('sim_api_key') || '';
+
+function openApiModal() {
+  document.getElementById('api-key-input').value = API_KEY;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function closeModalOutside(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+function toggleKeyVisible() {
+  const inp = document.getElementById('api-key-input');
+  const eye = document.getElementById('eye-btn');
+  if (inp.type === 'password') { inp.type = 'text';     eye.textContent = '🙈'; }
+  else                          { inp.type = 'password'; eye.textContent = '👁️'; }
+}
+function saveApiKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  API_KEY = val;
+  if (val) localStorage.setItem('sim_api_key', val);
+  else      localStorage.removeItem('sim_api_key');
+  updateApiStatus();
+  closeModal();
+  toast(val ? '✅ APIキーを保存しました' : 'APIキーを削除しました', 'ok');
+}
+function updateApiStatus() {
+  const dot = document.getElementById('api-dot');
+  const lbl = document.getElementById('api-btn-label');
+  const btn = document.getElementById('api-btn');
+  if (API_KEY && API_KEY.startsWith('sk-')) {
+    dot.classList.add('on');
+    lbl.textContent = 'AI接続済み';
+    document.getElementById('api-btn').classList.add('connected');
+    if (originalImage) btn.disabled = false;
+  } else {
+    dot.classList.remove('on');
+    lbl.textContent = 'APIキー設定';
+    document.getElementById('api-btn').classList.remove('connected');
+  }
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let curColor     = '#F5F0DC';
+let curColorName = 'アイボリー';
+let curTool      = 'brush';
+let brushSz      = 24;
+let brushOpa     = 0.72;
+let isDrawing    = false;
+let lastX = 0, lastY = 0;
+let originalImage = null;
+const undoStack = [], redoStack = [];
+const MAX_UNDO  = 40;
+let aiRegions   = [];
+let partColors  = {};
+
+/* ============================================================
+   CANVAS
+   ============================================================ */
+const simOuter    = document.getElementById('sim-outer');
+const baseCanvas  = document.getElementById('base-canvas');
+const paintCanvas = document.getElementById('paint-canvas');
+const baseCtx     = baseCanvas.getContext('2d');
+const paintCtx    = paintCanvas.getContext('2d');
+
+function resizeCanvases(w, h) {
+  baseCanvas.width = paintCanvas.width   = w;
+  baseCanvas.height = paintCanvas.height = h;
+  baseCanvas.style.width  = paintCanvas.style.width  = w + 'px';
+  baseCanvas.style.height = paintCanvas.style.height = h + 'px';
+  simOuter.style.minHeight = h + 'px';
+}
+
+/* ============================================================
+   UPLOAD — label ラップ方式（iPad Safari 完全対応）
+   ============================================================ */
+const uploadLabel = document.getElementById('upload-label');
+
+// ドラッグ＆ドロップ（Mac / Windows 向け）
+uploadLabel.addEventListener('dragover', e => {
+  e.preventDefault(); uploadLabel.classList.add('over');
+});
+uploadLabel.addEventListener('dragleave', () => uploadLabel.classList.remove('over'));
+uploadLabel.addEventListener('drop', e => {
+  e.preventDefault(); uploadLabel.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadImageFile(f);
+});
+
+function loadFile(e) {
+  const f = e.target.files[0];
+  if (f) loadImageFile(f);
+  e.target.value = ''; // 同じファイルを再選択できるようリセット
+}
+
+function loadImageFile(file) {
+  // iPad の写真アプリからの HEIC も FileReader で読める
+  const reader = new FileReader();
+  reader.onerror = () => toast('写真の読み込みに失敗しました。別の写真をお試しください。', 'err');
+  reader.onload = ev => {
+    const img = new Image();
+    img.onerror = () => toast('この形式の写真は表示できません。JPGまたはPNGでお試しください。', 'err');
+    img.onload = () => {
+      originalImage = img;
+      const maxW = Math.min(820, img.width);
+      const s = maxW / img.width;
+      const w = Math.round(img.width * s);
+      const h = Math.round(img.height * s);
+      resizeCanvases(w, h);
+      baseCtx.drawImage(img, 0, 0, w, h);
+      paintCtx.clearRect(0, 0, w, h);
+      undoStack.length = redoStack.length = 0;
+      aiRegions = []; partColors = {};
+
+      document.getElementById('sim-ph').style.display      = 'none';
+      document.getElementById('canvas-hint').style.display = 'block';
+      document.getElementById('upload-name').style.display = 'block';
+      document.getElementById('upload-name').textContent   = '📁 ' + file.name;
+      document.getElementById('regions-section').style.display = 'none';
+      if (API_KEY && API_KEY.startsWith('sk-')) {
+        document.getElementById('ai-btn').disabled = false;
+      }
+      syncReport(); updateSummary();
+      toast('✅ 写真を読み込みました！AIボタンで部位を自動認識できます。', 'ok');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ============================================================
+   COLOR PICKER
+   ============================================================ */
+function pickColor(hex, name) {
+  curColor = hex; curColorName = name;
+  document.getElementById('sel-sw').style.background = hex;
+  document.getElementById('sel-nm').textContent      = name;
+  document.getElementById('sel-cd').textContent      = hex.toUpperCase();
+  document.getElementById('cust-color').value        = hex;
+  document.getElementById('cust-hex').textContent    = hex.toUpperCase();
+  document.querySelectorAll('.p-sw').forEach(sw => {
+    const m = (sw.closest('.p-chip').getAttribute('onclick')||'').match(/'(#[0-9A-Fa-f]+)'/);
+    sw.classList.toggle('sel', m && m[1].toUpperCase() === hex.toUpperCase());
+  });
+}
+
+/* ============================================================
+   TOOLS
+   ============================================================ */
+function setTool(t) {
+  curTool = t;
+  ['brush','eraser','fill'].forEach(id =>
+    document.getElementById('tb-'+id).classList.toggle('active', id === t)
+  );
+  paintCanvas.style.cursor = t === 'fill' ? 'cell' : 'crosshair';
+}
+function updBrush() {
+  brushSz = parseInt(document.getElementById('br-size').value);
+  document.getElementById('br-size-v').textContent = brushSz + 'px';
+}
+function updOpa() {
+  brushOpa = parseInt(document.getElementById('br-opa').value) / 100;
+  document.getElementById('br-opa-v').textContent = Math.round(brushOpa*100) + '%';
+}
+
+/* ============================================================
+   DRAWING  (mouse + touch + stylus)
+   ============================================================ */
+function getXY(e) {
+  const rect = paintCanvas.getBoundingClientRect();
+  const sx = paintCanvas.width  / rect.width;
+  const sy = paintCanvas.height / rect.height;
+  const src = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
+  return { x:(src.clientX - rect.left)*sx, y:(src.clientY - rect.top)*sy };
+}
+
+function saveUndo() {
+  undoStack.push(paintCtx.getImageData(0,0,paintCanvas.width,paintCanvas.height));
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack.length = 0;
+}
+
+paintCanvas.addEventListener('pointerdown', e => {
+  if (!originalImage) return;
+  e.preventDefault();
+  const {x,y} = getXY(e);
+  if (curTool === 'fill') { saveUndo(); floodFill(Math.round(x),Math.round(y)); endDraw(); return; }
+  saveUndo(); isDrawing=true; lastX=x; lastY=y;
+  strokeLine(x,y,x,y);
+});
+paintCanvas.addEventListener('pointermove', e => {
+  if (!isDrawing) return; e.preventDefault();
+  const {x,y}=getXY(e); strokeLine(lastX,lastY,x,y); lastX=x; lastY=y;
+});
+paintCanvas.addEventListener('pointerup',    () => endDraw());
+paintCanvas.addEventListener('pointerleave', () => endDraw());
+paintCanvas.addEventListener('touchstart',   e => e.preventDefault(),{passive:false});
+paintCanvas.addEventListener('touchmove',    e => e.preventDefault(),{passive:false});
+
+function endDraw() {
+  if (isDrawing) { isDrawing=false; syncReport(); updateSummary(); }
+}
+
+function hex2rgba(hex, a) {
+  hex = hex.replace('#','');
+  if (hex.length===3) hex=hex.split('').map(c=>c+c).join('');
+  const n=parseInt(hex,16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+
+function strokeLine(x0,y0,x1,y1) {
+  paintCtx.save();
+  if (curTool==='eraser') {
+    paintCtx.globalCompositeOperation='destination-out';
+    paintCtx.strokeStyle='rgba(0,0,0,1)';
+  } else {
+    paintCtx.globalCompositeOperation='source-over';
+    paintCtx.strokeStyle=hex2rgba(curColor,brushOpa);
+  }
+  paintCtx.lineWidth=brushSz; paintCtx.lineCap='round'; paintCtx.lineJoin='round';
+  paintCtx.beginPath(); paintCtx.moveTo(x0,y0); paintCtx.lineTo(x1,y1); paintCtx.stroke();
+  paintCtx.restore();
+}
+
+/* ============================================================
+   FLOOD FILL
+   ============================================================ */
+function floodFill(sx, sy) {
+  const w=paintCanvas.width, h=paintCanvas.height;
+  const bdata = baseCtx.getImageData(0,0,w,h).data;
+  const pimg  = paintCtx.getImageData(0,0,w,h);
+  const pd    = pimg.data;
+  const i0    = (sy*w+sx)*4;
+  const tr=bdata[i0],tg=bdata[i0+1],tb=bdata[i0+2];
+  let fhex=curColor.replace('#','');
+  if(fhex.length===3)fhex=fhex.split('').map(c=>c+c).join('');
+  const fn=parseInt(fhex,16);
+  const fr=(fn>>16)&255,fg=(fn>>8)&255,fb=fn&255,fa=Math.round(brushOpa*255);
+  const tol=50, vis=new Uint8Array(w*h), q=[sx+sy*w]; vis[sx+sy*w]=1;
+  let iter=0, max=w*h;
+  while(q.length&&iter++<max){
+    const pos=q.pop(), px=pos%w, py=Math.floor(pos/w), pi=pos*4;
+    pd[pi]=fr;pd[pi+1]=fg;pd[pi+2]=fb;pd[pi+3]=fa;
+    const ns=[px>0?pos-1:-1,px<w-1?pos+1:-1,py>0?pos-w:-1,py<h-1?pos+w:-1];
+    for(const n of ns){
+      if(n<0||vis[n])continue; vis[n]=1;
+      const ni=n*4;
+      if(Math.abs(bdata[ni]-tr)+Math.abs(bdata[ni+1]-tg)+Math.abs(bdata[ni+2]-tb)<=tol)q.push(n);
+    }
+  }
+  paintCtx.putImageData(pimg,0,0);
+  syncReport(); updateSummary();
+}
+
+/* ============================================================
+   UNDO / REDO
+   ============================================================ */
+function undo() {
+  if(!undoStack.length){toast('これ以上戻せません');return;}
+  redoStack.push(paintCtx.getImageData(0,0,paintCanvas.width,paintCanvas.height));
+  paintCtx.putImageData(undoStack.pop(),0,0);
+  syncReport(); updateSummary();
+}
+function redo() {
+  if(!redoStack.length){toast('これ以上やり直せません');return;}
+  undoStack.push(paintCtx.getImageData(0,0,paintCanvas.width,paintCanvas.height));
+  paintCtx.putImageData(redoStack.pop(),0,0);
+  syncReport(); updateSummary();
+}
+function clearPaint() {
+  saveUndo();
+  paintCtx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
+  partColors={};
+  syncReport(); updateSummary();
+  toast('塗装をクリアしました');
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  const ctrl = e.ctrlKey || e.metaKey;
+  if (ctrl && e.key==='z') { e.preventDefault(); undo(); }
+  if (ctrl && (e.key==='y'||(e.shiftKey&&e.key==='z'))) { e.preventDefault(); redo(); }
+});
+
+/* ============================================================
+   AI ANALYSIS
+   ============================================================ */
+async function runAI() {
+  if (!originalImage) return;
+  if (!API_KEY || !API_KEY.startsWith('sk-')) {
+    openApiModal(); return;
+  }
+  const aibtn = document.getElementById('ai-btn');
+  const ribbon = document.getElementById('ai-ribbon');
+  const lo     = document.getElementById('lo');
+  aibtn.disabled = true;
+  ribbon.classList.add('show');
+  lo.classList.add('show');
+  document.getElementById('lo-msg').textContent = 'AIが住宅写真を解析しています…';
+
+  const b64 = baseCanvas.toDataURL('image/jpeg',0.85).split(',')[1];
+
+  const prompt = `あなたは住宅外壁塗装の専門家AIです。
+この住宅写真を分析し、塗装可能な各部位の位置をJSON形式のみで返してください。
+
+検出対象：屋根(roof)、外壁(wall)、雨樋(gutter)、破風板(fascia)、軒天井(soffit)、ドア・玄関(door)
+
+写真全体を100×100のグリッドとして、各部位の矩形領域をパーセント(x,y,width,height)で返してください。
+現在の外観色もcolorに含めてください。
+見えない部位は含めないでください。
+
+厳密にこのJSON形式のみで返答してください（前置き・後置き不要）：
+{"regions":[{"id":"roof","label":"屋根","x":10,"y":5,"width":80,"height":28,"color":"#6A4828"},{"id":"wall","label":"外壁","x":8,"y":40,"width":84,"height":46,"color":"#F0EAD8"}]}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:1000,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+          {type:'text',text:prompt}
+        ]}]
+      })
+    });
+    if(!res.ok){ const e=await res.json(); throw new Error(e.error?.message||'APIエラー '+res.status); }
+    const data = await res.json();
+    const txt  = data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const m    = txt.match(/\{[\s\S]*"regions"[\s\S]*\}/);
+    if(!m) throw new Error('JSONが見つかりませんでした');
+    const parsed = JSON.parse(m[0]);
+    aiRegions = parsed.regions || [];
+    document.getElementById('lo-msg').textContent = '認識完了！エリアを描画中…';
+    renderRegions();
+    buildRegionPanel();
+    document.getElementById('regions-section').style.display = 'block';
+    toast(`✅ ${aiRegions.length}個の部位を認識しました`, 'ok');
+  } catch(err) {
+    console.error(err);
+    toast('AI解析エラー: ' + err.message, 'err');
+  } finally {
+    aibtn.disabled = false;
+    ribbon.classList.remove('show');
+    lo.classList.remove('show');
+  }
+}
+
+function renderRegions() {
+  const w=paintCanvas.width, h=paintCanvas.height;
+  aiRegions.forEach(r => {
+    const rx=r.x/100*w, ry=r.y/100*h, rw=r.width/100*w, rh=r.height/100*h;
+    paintCtx.save();
+    paintCtx.globalCompositeOperation='source-over';
+    paintCtx.fillStyle = hex2rgba(r.color, 0.52);
+    paintCtx.fillRect(rx,ry,rw,rh);
+    paintCtx.fillStyle='rgba(255,255,255,0.82)';
+    const fs = Math.max(11, Math.round(rh*0.17));
+    paintCtx.font=`bold ${fs}px sans-serif`;
+    paintCtx.fillText(r.label, rx+6, ry+rh*0.38);
+    paintCtx.restore();
+    partColors[r.label] = {color:r.color, name:r.label};
+  });
+  syncReport(); updateSummary();
+}
+
+function buildRegionPanel() {
+  const list = document.getElementById('region-list');
+  list.innerHTML = '';
+  aiRegions.forEach((r,i) => {
+    const el = document.createElement('div');
+    el.className='reg-item'; el.id='ri-'+i;
+    el.innerHTML=`<div class="reg-dot" id="rdot-${i}" style="background:${r.color};"></div><div class="reg-lbl">${r.label}</div><div class="reg-code" id="rcode-${i}">${r.color.toUpperCase()}</div>`;
+    el.onclick = () => applyRegion(i);
+    list.appendChild(el);
+  });
+}
+
+function applyRegion(i) {
+  const r=aiRegions[i];
+  const w=paintCanvas.width, h=paintCanvas.height;
+  const rx=r.x/100*w, ry=r.y/100*h, rw=r.width/100*w, rh=r.height/100*h;
+  saveUndo();
+  paintCtx.save();
+  paintCtx.clearRect(rx,ry,rw,rh);
+  paintCtx.globalCompositeOperation='source-over';
+  paintCtx.fillStyle=hex2rgba(curColor,brushOpa);
+  paintCtx.fillRect(rx,ry,rw,rh);
+  paintCtx.fillStyle='rgba(255,255,255,0.8)';
+  const fs=Math.max(11,Math.round(rh*0.17));
+  paintCtx.font=`bold ${fs}px sans-serif`;
+  paintCtx.fillText(r.label,rx+6,ry+rh*0.38);
+  paintCtx.restore();
+  aiRegions[i].color = curColor;
+  document.getElementById('rdot-'+i).style.background = curColor;
+  document.getElementById('rcode-'+i).textContent     = curColor.toUpperCase();
+  document.querySelectorAll('.reg-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('ri-'+i).classList.add('active');
+  partColors[r.label]={color:curColor,name:curColorName};
+  syncReport(); updateSummary();
+  toast(`${r.label} → ${curColorName}`);
+}
+
+/* ============================================================
+   SUMMARY BAR
+   ============================================================ */
+function updateSummary() {
+  const bar = document.getElementById('summary-bar');
+  bar.innerHTML = '<span class="sum-label">配色</span>';
+  const entries = Object.entries(partColors);
+  if (!entries.length) {
+    bar.innerHTML += '<span style="font-size:10px;color:var(--text3);">塗装すると自動表示されます</span>';
+  } else {
+    entries.forEach(([lbl,{color}]) => {
+      const c=document.createElement('div');
+      c.className='sum-chip';
+      c.innerHTML=`<div class="sum-dot" style="background:${color};"></div><span style="color:var(--text2);font-weight:600;">${lbl}</span><span style="font-family:monospace;font-size:9px;color:var(--text3);">${color.toUpperCase()}</span>`;
+      bar.appendChild(c);
+    });
+  }
+  updateSpecRows();
+}
+
+function updateSpecRows() {
+  const box = document.getElementById('spec-rows');
+  box.innerHTML = '';
+  const entries = Object.entries(partColors);
+  if (!entries.length) {
+    box.innerHTML = '<div class="spec-row" style="color:var(--text3);font-size:11px;padding:9px 11px;">塗装データなし</div>';
+    return;
+  }
+  entries.forEach(([lbl,{color}]) => {
+    const r=document.createElement('div'); r.className='spec-row';
+    r.innerHTML=`<div class="spec-dot" style="background:${color};"></div><div class="spec-part">${lbl}</div><div class="spec-code">${color.toUpperCase()}</div>`;
+    box.appendChild(r);
+  });
+}
+
+/* ============================================================
+   REPORT SYNC
+   ============================================================ */
+function syncReport() {
+  if (!originalImage) return;
+  ['before','after'].forEach(type => {
+    const box    = document.getElementById('ba-'+type+'-box');
+    const canvas = document.getElementById('rpt-'+type);
+    const bw     = box.clientWidth  || 360;
+    const bh     = box.clientHeight || 270;
+    canvas.width  = bw; canvas.height = bh;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(originalImage, 0,0, bw,bh);
+    if (type==='after' && paintCanvas.width>0) {
+      ctx.drawImage(paintCanvas,0,0,paintCanvas.width,paintCanvas.height,0,0,bw,bh);
+    }
+  });
+}
+
+/* ============================================================
+   PDF
+   ============================================================ */
+function savePDF() {
+  syncReport();
+  const el  = document.getElementById('report-sheet');
+  const opt = {
+    margin:0, filename:'外壁塗装カラー提案書.pdf',
+    image:{type:'jpeg',quality:0.96},
+    html2canvas:{scale:2,useCORS:true,logging:false,allowTaint:true},
+    jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},
+  };
+  toast('PDFを生成しています…');
+  html2pdf().set(opt).from(el).save()
+    .then(()=>toast('✅ PDFを保存しました','ok'))
+    .catch(e=>toast('PDFエラー: '+e.message,'err'));
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function toast(msg, type='') {
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show'+(type?' '+type:'');
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(function init() {
+  const d = new Date();
+  document.getElementById('r-date').placeholder = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+  pickColor('#F5F0DC','アイボリー');
+  updateApiStatus();
+  window.addEventListener('resize', ()=>{ if(originalImage) syncReport(); });
+
+  // Show API modal on first visit if no key saved
+  if (!API_KEY) {
+    setTimeout(() => openApiModal(), 600);
+  }
+})();
+</script>
+</body>
+</html>
