@@ -133,8 +133,13 @@ input.cpick{position:absolute;width:0;height:0;opacity:0}
 .sdot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);flex-shrink:0}
 .sdot.on{background:#4DE880}
 
-/* UPLOAD */
-.upload-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10}
+/* EXCLUSION OVERLAY (赤い半透明で除外エリアを表示) */
+.excl-item{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:6px 8px;cursor:pointer;font-size:11px;transition:all .14s}
+.excl-item:hover{border-color:var(--red)}
+.excl-item.hidden-excl{opacity:.45}
+.excl-dot{width:10px;height:10px;border-radius:50%;background:rgba(184,48,48,.7);flex-shrink:0}
+.excl-name{flex:1;color:var(--tx2);font-weight:600}
+.excl-toggle{font-size:11px;color:var(--tx3)}
 .uph-icon{font-size:52px;margin-bottom:14px;opacity:.35}
 .uph-text{font-size:14px;color:rgba(255,255,255,.35);margin-bottom:18px;text-align:center;line-height:1.9}
 .uph-btn{background:var(--acc);color:#fff;border:none;border-radius:10px;padding:13px 30px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(26,92,160,.4)}
@@ -224,6 +229,51 @@ input.cpick{position:absolute;width:0;height:0;opacity:0}
     <div style="display:flex;gap:6px;margin-top:4px">
       <button onclick="clearSel()" style="flex:1;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:7px;font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;transition:all .14s" onmouseover="this.style.borderColor='var(--acc)'" onmouseout="this.style.borderColor='var(--border)'">選択解除</button>
       <button onclick="invertSel()" style="flex:1;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:7px;font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;transition:all .14s" onmouseover="this.style.borderColor='var(--acc)'" onmouseout="this.style.borderColor='var(--border)'">選択反転</button>
+    </div>
+  </div>
+
+  <!-- ② AI 非塗装除外 -->
+  <div class="sec" id="ai-exclude-sec">
+    <div class="sec-title"><div class="sec-dot" style="background:#7040C0"></div>② AI 非塗装エリア除外</div>
+
+    <!-- 手順説明 -->
+    <div style="background:#F0EBF8;border:1px solid #D0B8F0;border-radius:var(--rs);padding:9px 11px;font-size:11px;color:#4A1A80;line-height:1.7;margin-bottom:10px">
+      サッシ・アルミベランダ・ガラス・金属部分を<b>自動的に除外</b>します。<br>
+      このチャット（Claude）経由で解析するので追加費用ゼロ。
+    </div>
+
+    <!-- STEP 1: 写真をコピー -->
+    <div style="background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:var(--acc);margin-bottom:6px">STEP 1　写真をClaudeに送る</div>
+      <canvas id="ai-thumb" style="width:100%;border-radius:5px;border:1px solid var(--border);display:block;background:#ccc;max-height:120px;object-fit:cover"></canvas>
+      <button onclick="copyAIPrompt()" style="width:100%;margin-top:7px;background:var(--acc);color:#fff;border:none;border-radius:var(--rs);padding:9px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+        📋 プロンプトをコピーしてClaudeに送る
+      </button>
+      <div style="font-size:9px;color:var(--tx3);margin-top:5px;line-height:1.5">↑ ボタンを押してから、このチャット画面に写真と一緒にプロンプトを貼り付けて送信してください</div>
+    </div>
+
+    <!-- STEP 2: JSON貼り付け -->
+    <div style="background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:var(--acc);margin-bottom:6px">STEP 2　ClaudeのJSON回答を貼り付ける</div>
+      <textarea id="ai-json-inp" placeholder='{"exclude":[...]} の形式で貼り付け' style="width:100%;height:72px;border:1.5px solid var(--border2);border-radius:var(--rs);padding:7px 9px;font-size:10px;font-family:monospace;color:var(--tx);outline:none;resize:none;background:#fff;line-height:1.5"></textarea>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button onclick="pasteAIJson()" style="flex:1;background:#fff;border:1.5px solid var(--border2);border-radius:var(--rs);padding:8px;font-size:11px;font-weight:700;cursor:pointer;color:var(--tx2);display:flex;align-items:center;justify-content:center;gap:4px">
+          📋 クリップボードから貼り付け
+        </button>
+        <button onclick="document.getElementById('ai-json-inp').value=''" style="background:#fff;border:1.5px solid var(--border2);border-radius:var(--rs);padding:8px 11px;font-size:12px;cursor:pointer;color:var(--red)">✕</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: 適用 -->
+    <button id="ai-apply-btn" onclick="applyAIExclude()" style="width:100%;background:linear-gradient(135deg,#7040C0,var(--acc));color:#fff;border:none;border-radius:var(--rs);padding:11px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 10px rgba(112,64,192,.3);transition:filter .15s">
+      ✨ 非塗装エリアを除外して適用
+    </button>
+
+    <!-- 除外エリア一覧 -->
+    <div id="excl-list-wrap" style="display:none;margin-top:10px">
+      <div style="font-size:9px;color:var(--tx3);margin-bottom:5px;letter-spacing:.06em">■ 検出された非塗装エリア（クリックで表示/非表示）</div>
+      <div id="excl-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto"></div>
+      <button onclick="clearExclusions()" style="width:100%;margin-top:6px;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:6px;font-size:10px;color:var(--tx3);cursor:pointer">除外をすべてクリア</button>
     </div>
   </div>
 
@@ -397,8 +447,46 @@ let brushDown=false;
 let panDown=false, panSX=0, panSY=0;
 let spaceDown=false;
 
-// 写真キャッシュ
-let _pd=null;
+// 除外エリア: [{id, label, rects:[{x,y,w,h}(0-100%), visible}]
+let exclusions = [];
+let _exclCanvas = null;
+let _exclDirty  = true;
+
+function markExclDirty(){ _exclDirty=true; _exclCanvas=null; }
+
+function getExclCanvas(){
+  if(!_exclDirty && _exclCanvas) return _exclCanvas;
+  const off=document.createElement('canvas'); off.width=IW; off.height=IH;
+  const oc=off.getContext('2d');
+  const id=oc.createImageData(IW,IH); const d=id.data;
+  for(const ex of exclusions){
+    if(!ex.visible) continue;
+    for(const r of ex.rects){
+      const rx0=Math.round(r.x/100*IW), ry0=Math.round(r.y/100*IH);
+      const rx1=Math.min(IW,Math.round((r.x+r.w)/100*IW));
+      const ry1=Math.min(IH,Math.round((r.y+r.h)/100*IH));
+      for(let iy=ry0;iy<ry1;iy++) for(let ix=rx0;ix<rx1;ix++){
+        const p=(iy*IW+ix)*4; d[p]=220;d[p+1]=40;d[p+2]=40;d[p+3]=70;
+      }
+    }
+  }
+  oc.putImageData(id,0,0);
+  _exclCanvas=off; _exclDirty=false; return off;
+}
+
+// 選択マスクから除外エリアを差し引く
+function applyExclusionsToMask(mask){
+  if(!exclusions.length) return;
+  for(const ex of exclusions){
+    if(!ex.visible) continue;
+    for(const r of ex.rects){
+      const rx0=Math.round(r.x/100*IW), ry0=Math.round(r.y/100*IH);
+      const rx1=Math.min(IW,Math.round((r.x+r.w)/100*IW));
+      const ry1=Math.min(IH,Math.round((r.y+r.h)/100*IH));
+      for(let iy=ry0;iy<ry1;iy++) for(let ix=rx0;ix<rx1;ix++) mask[iy*IW+ix]=0;
+    }
+  }
+}
 function getPD(){
   if(_pd) return _pd;
   const tmp=document.createElement('canvas');tmp.width=IW;tmp.height=IH;
@@ -515,7 +603,16 @@ function _doDraw(){
     ctx.restore();
   }
 
-  // ③ 選択マスク（青い半透明）
+  // ③ 除外エリア（赤い半透明）
+  if(exclusions.some(e=>e.visible)){
+    const ec = getExclCanvas();
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(ec, cl, ct, dw, dh);
+    ctx.restore();
+  }
+
+  // ④ 選択マスク（青い半透明）
   if(selMask){
     const sc = getSelCanvas();
     ctx.save();
@@ -578,6 +675,7 @@ function loadPhoto(e){
       photo=img; IW=img.naturalWidth; IH=img.naturalHeight;
       zoom='init'; panX=panY=0; _pd=null;
       layers=[]; selIdx=-1; lCnt=0; selMask=null;
+      exclusions=[]; _exclCanvas=null; _exclDirty=true;
       undoSt.length=redoSt.length=0;
       lassoPoints=[]; lassoOpen=false; rectStart=null;
       document.getElementById('upload-ph').style.display='none';
@@ -589,6 +687,7 @@ function loadPhoto(e){
       zoom=Math.min(fw,fh)*0.93;
       resizeCanvas();
       buildLayerList();
+      setTimeout(updateAIThumb, 100);
       toast('✅ 写真を読み込みました。左のツールで塗りたい範囲を囲んでください','ok');
     };
     img.src=ev.target.result;
@@ -1206,8 +1305,110 @@ function exportPDF(){
 }
 
 /* =============================================
-   SAVE / LOAD
+   AI 非塗装エリア除外機能
 ============================================= */
+const AI_EXCL_PROMPT = `この建物の写真を解析し、「塗装しない箇所」（アルミサッシ、窓ガラス、アルミベランダ、金属手すり、配管、エアコン室外機、換気口など）の位置を検出してください。
+
+写真全体を100×100のグリッドとして、各非塗装エリアの位置をJSON形式のみで返してください（説明文は不要）：
+
+{"exclude":[
+  {"id":"sash_1","label":"サッシ（左窓）","rects":[{"x":10,"y":40,"w":18,"h":20}]},
+  {"id":"balcony_1","label":"アルミベランダ","rects":[{"x":5,"y":30,"w":90,"h":8},{"x":5,"y":30,"w":3,"h":40}]},
+  {"id":"glass_1","label":"ガラス（左窓）","rects":[{"x":11,"y":42,"w":16,"h":16}]}
+]}
+
+検出対象：サッシ・窓枠・ガラス・アルミベランダ・金属手すり・縦樋・配管・室外機・換気口・ポスト・表札など塗装しない全ての部分
+各エリアのrectsは複数指定可（縦横に分けてOK）。見えない部位は含めないでください。`;
+
+function copyAIPrompt(){
+  // サムネイルを最新に更新
+  updateAIThumb();
+  navigator.clipboard.writeText(AI_EXCL_PROMPT).then(()=>{
+    toast('✅ プロンプトをコピーしました。写真と一緒にClaudeに送ってください','ok');
+  }).catch(()=>{
+    // フォールバック
+    const ta=document.createElement('textarea');
+    ta.value=AI_EXCL_PROMPT; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    toast('✅ プロンプトをコピーしました','ok');
+  });
+}
+
+function pasteAIJson(){
+  navigator.clipboard.readText().then(text=>{
+    document.getElementById('ai-json-inp').value=text;
+    toast('✅ 貼り付けました','ok');
+  }).catch(()=>{
+    const ta=document.getElementById('ai-json-inp'); ta.focus(); ta.select();
+    toast('テキストボックスを長押し→「ペースト」してください');
+  });
+}
+
+function updateAIThumb(){
+  if(!photo) return;
+  const thumb=document.getElementById('ai-thumb');
+  const tw=thumb.offsetWidth||240, th=Math.round(tw*IH/IW);
+  thumb.width=tw; thumb.height=th;
+  thumb.style.height=th+'px';
+  thumb.getContext('2d').drawImage(photo,0,0,tw,th);
+}
+
+function applyAIExclude(){
+  const raw=document.getElementById('ai-json-inp').value.trim();
+  if(!raw){ toast('STEP 2でJSONを貼り付けてください','err'); return; }
+  try{
+    const m=raw.match(/\{[\s\S]*"exclude"[\s\S]*\}/);
+    if(!m) throw new Error('"exclude"が見つかりません');
+    const parsed=JSON.parse(m[0]);
+    const arr=parsed.exclude||[];
+    if(!arr.length) throw new Error('除外エリアが空です');
+
+    saveU();
+    // 除外エリアを登録（既存を保持して追加）
+    arr.forEach(ex=>{
+      const existing=exclusions.find(e=>e.id===ex.id);
+      if(existing){ existing.rects=ex.rects; existing.label=ex.label; existing.visible=true; }
+      else exclusions.push({...ex, visible:true});
+    });
+
+    // 現在のselMaskから除外エリアを差し引く
+    if(selMask){ applyExclusionsToMask(selMask); markSelDirty(); }
+    // 既存レイヤーからも除外
+    for(const layer of layers){
+      if(layer.mask){ applyExclusionsToMask(layer.mask); markLayerDirty(layer.id); }
+    }
+    markExclDirty();
+    buildExclList();
+    document.getElementById('excl-list-wrap').style.display='block';
+    draw();
+    toast(`✅ ${arr.length}個の非塗装エリアを除外しました。ブラシで微調整できます`,'ok');
+  }catch(e){
+    toast('JSON読み込みエラー: '+e.message,'err');
+  }
+}
+
+function buildExclList(){
+  const list=document.getElementById('excl-list'); list.innerHTML='';
+  if(!exclusions.length){ list.innerHTML='<div style="font-size:10px;color:var(--tx3);text-align:center;padding:8px">除外エリアなし</div>'; return; }
+  exclusions.forEach((ex,i)=>{
+    const el=document.createElement('div');
+    el.className='excl-item'+(ex.visible?'':' hidden-excl');
+    el.innerHTML=`<div class="excl-dot"></div><div class="excl-name">${ex.label}</div><div class="excl-toggle">${ex.visible?'👁':'🙈'}</div>`;
+    el.onclick=()=>{
+      exclusions[i].visible=!exclusions[i].visible;
+      markExclDirty();
+      // 表示OFFにした場合は除外を解除（マスクに影響しないようにする）
+      buildExclList(); draw();
+    };
+    list.appendChild(el);
+  });
+}
+
+function clearExclusions(){
+  saveU(); exclusions=[]; markExclDirty();
+  document.getElementById('excl-list-wrap').style.display='none';
+  buildExclList(); draw();
+  toast('除外エリアをクリアしました');
+}
 function saveWork(){
   if(!photo){toast('写真をアップロードしてください','err');return;}
   try{
