@@ -407,6 +407,72 @@ function getPD(){
   return _pd;
 }
 
+// ======================================================
+// レイヤーキャッシュ
+// 各レイヤーを事前にImageDataとして保持し、draw()では
+// キャッシュを使い回す（毎回生成しない）
+// ======================================================
+// layerCache[layer.id] = {canvas, dirty}
+const layerCache = {};
+
+function markLayerDirty(layerId){
+  if(layerCache[layerId]) layerCache[layerId].dirty = true;
+}
+function markAllDirty(){
+  for(const k in layerCache) layerCache[k].dirty = true;
+}
+
+function getLayerCanvas(layer){
+  if(!layerCache[layer.id]) layerCache[layer.id]={canvas:null,dirty:true};
+  const entry = layerCache[layer.id];
+  if(!entry.dirty && entry.canvas) return entry.canvas;
+
+  // 再生成
+  const off = document.createElement('canvas');
+  off.width=IW; off.height=IH;
+  const oc = off.getContext('2d');
+  const hex = layer.color.replace('#','');
+  const hn  = hex.length===3 ? hex.split('').map(c=>c+c).join('') : hex;
+  const n   = parseInt(hn,16);
+  const fr=(n>>16)&255, fg=(n>>8)&255, fb=n&255;
+  const id  = oc.createImageData(IW,IH);
+  const d   = id.data;
+  const m   = layer.mask;
+  const len = m.length;
+  const fa  = Math.round(layer.opacity*255);
+  for(let i=0;i<len;i++){
+    if(!m[i]) continue;
+    const p=i*4; d[p]=fr;d[p+1]=fg;d[p+2]=fb;d[p+3]=fa;
+  }
+  oc.putImageData(id,0,0);
+  entry.canvas = off;
+  entry.dirty  = false;
+  return off;
+}
+
+// selMaskキャッシュ
+let _selCanvas = null;
+let _selDirty  = true;
+function getSelCanvas(){
+  if(!_selDirty && _selCanvas) return _selCanvas;
+  const off = document.createElement('canvas');
+  off.width=IW; off.height=IH;
+  const oc  = off.getContext('2d');
+  const id  = oc.createImageData(IW,IH);
+  const d   = id.data;
+  const m   = selMask;
+  const len = m.length;
+  for(let i=0;i<len;i++){
+    if(!m[i]) continue;
+    const p=i*4; d[p]=79;d[p+1]=142;d[p+2]=247;d[p+3]=85;
+  }
+  oc.putImageData(id,0,0);
+  _selCanvas = off;
+  _selDirty  = false;
+  return off;
+}
+function markSelDirty(){ _selDirty=true; _selCanvas=null; }
+
 /* =============================================
    キャンバスサイズ設定
 ============================================= */
@@ -418,78 +484,51 @@ function resizeCanvas(){
 window.addEventListener('resize',resizeCanvas);
 
 /* =============================================
-   描画（常に写真→レイヤー→選択を重ねる）
+   描画（写真→レイヤー→選択を重ねる）
+   ※キャッシュを使い回すので軽い
 ============================================= */
+let _rafId = null;
 function draw(){
+  // requestAnimationFrameで間引く（ブラシ連打でも重ならない）
+  if(_rafId) return;
+  _rafId = requestAnimationFrame(_doDraw);
+}
+function _doDraw(){
+  _rafId = null;
   const W=canvas.width, H=canvas.height;
   ctx.clearRect(0,0,W,H);
-
-  if(!photo){ return; }
+  if(!photo) return;
 
   const cl=canvasLeft(), ct=canvasTop();
   const dw=IW*zoom, dh=IH*zoom;
 
-  // ① 元の写真（必ず最初に描く）
+  // ① 元の写真
   ctx.drawImage(photo, cl, ct, dw, dh);
 
-  // ② 各レイヤー（multiply等で合成）
+  // ② 各レイヤー（キャッシュ済みcanvasを使う）
   for(const layer of layers){
     if(!layer.visible||!layer.mask) continue;
-    drawLayer(layer, cl, ct, dw, dh);
+    const lc = getLayerCanvas(layer);
+    ctx.save();
+    ctx.globalCompositeOperation = layer.blend;
+    ctx.drawImage(lc, cl, ct, dw, dh);
+    ctx.restore();
   }
 
-  // ③ 現在の選択マスク（青い半透明）
-  if(selMask) drawSelMask(cl, ct, dw, dh);
+  // ③ 選択マスク（青い半透明）
+  if(selMask){
+    const sc = getSelCanvas();
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(sc, cl, ct, dw, dh);
+    ctx.restore();
+  }
 
   // ④ なげなわのガイド線
   if(lassoOpen && lassoPoints.length>0) drawLassoGuide(cl, ct);
 
   // ⑤ 矩形ガイド
   if(rectStart && curRectEnd) drawRectGuide(cl, ct);
-}
-
-function drawLayer(layer, cl, ct, dw, dh){
-  const hex=layer.color.replace('#','');
-  const hn=hex.length===3?hex.split('').map(c=>c+c).join(''):hex;
-  const n=parseInt(hn,16);
-  const fr=(n>>16)&255, fg=(n>>8)&255, fb=n&255;
-
-  // オフスクリーンにマスク色を描く
-  const off=new OffscreenCanvas(IW,IH);
-  const oc=off.getContext('2d');
-  const id=oc.createImageData(IW,IH);
-  const d=id.data;
-  for(let i=0;i<layer.mask.length;i++){
-    if(!layer.mask[i]) continue;
-    const p=i*4; d[p]=fr;d[p+1]=fg;d[p+2]=fb;d[p+3]=Math.round(layer.opacity*255);
-  }
-  oc.putImageData(id,0,0);
-
-  ctx.save();
-  ctx.globalCompositeOperation=layer.blend;
-  ctx.drawImage(off,cl,ct,dw,dh);
-  ctx.restore();
-}
-
-function drawSelMask(cl,ct,dw,dh){
-  const off=new OffscreenCanvas(IW,IH);
-  const oc=off.getContext('2d');
-  const id=oc.createImageData(IW,IH);
-  const d=id.data;
-  for(let i=0;i<selMask.length;i++){
-    if(!selMask[i]) continue;
-    const p=i*4; d[p]=79;d[p+1]=142;d[p+2]=247;d[p+3]=90;
-  }
-  oc.putImageData(id,0,0);
-  ctx.save();
-  ctx.globalCompositeOperation='source-over';
-  ctx.drawImage(off,cl,ct,dw,dh);
-  // マーチングアンツ風の枠線
-  ctx.strokeStyle='rgba(79,142,247,0.9)';
-  ctx.lineWidth=1.5;
-  ctx.setLineDash([5,3]);
-  ctx.drawImage(off,cl,ct,dw,dh);
-  ctx.restore();
 }
 
 function drawLassoGuide(cl,ct){
@@ -729,6 +768,7 @@ function closeLasso(){
   selMask=m;
   lassoPoints=[]; lassoOpen=false;
   document.getElementById('apply-btn').disabled=false;
+  markSelDirty();
   draw();
   toast(`✅ 範囲を選択しました。色を選んで「色を適用」を押してください`,'ok');
 }
@@ -748,7 +788,7 @@ function ptInPoly(x,y,poly){
 function buildRectMask(rx0,ry0,rx1,ry1){
   const m=new Uint8Array(IW*IH);
   for(let iy=ry0;iy<=ry1;iy++) for(let ix=rx0;ix<=rx1;ix++) m[iy*IW+ix]=1;
-  selMask=m;
+  selMask=m; markSelDirty();
   document.getElementById('apply-btn').disabled=false;
   draw();
   toast('✅ 矩形範囲を選択しました。色を選んで「色を適用」を押してください','ok');
@@ -776,7 +816,7 @@ function doWand(sx,sy){
     for(const n of ns) if(n>=0&&!vis[n]){vis[n]=1;q.push(n);}
   }
   if(cnt<5){toast('選択が小さすぎます。許容値を上げてください');return;}
-  selMask=m;
+  selMask=m; markSelDirty();
   document.getElementById('apply-btn').disabled=false;
   draw();
   toast(`🪄 ${cnt.toLocaleString()}px を選択`,'ok');
@@ -796,6 +836,7 @@ function doBrush(ix,iy){
     const x=ix+dx,y=iy+dy;
     if(x>=0&&x<IW&&y>=0&&y<IH) selMask[y*IW+x]=curTool==='add'?1:0;
   }
+  markSelDirty();
   draw();
 }
 
@@ -805,6 +846,7 @@ function doBrush(ix,iy){
 function clearSel(){
   selMask=null; lassoPoints=[]; lassoOpen=false; lassoMousePos=null;
   rectStart=null; curRectEnd=null;
+  markSelDirty();
   document.getElementById('apply-btn').disabled=selIdx<0;
   draw();
 }
@@ -812,6 +854,7 @@ function invertSel(){
   if(!selMask){toast('先に範囲を選択してください');return;}
   saveU();
   for(let i=0;i<selMask.length;i++) selMask[i]=selMask[i]?0:1;
+  markSelDirty();
   draw();
 }
 
@@ -822,13 +865,13 @@ function applyColor(){
   if(!selMask&&selIdx<0){toast('先に範囲を選択してください','err');return;}
   saveU();
   if(selMask){
-    // 新レイヤー作成
     const name='レイヤー '+(++lCnt);
     const layer={id:Date.now(),name,mask:new Uint8Array(selMask),color:curColor,opacity:curOpa,blend:curBlend,visible:true};
     layers.push(layer); selIdx=layers.length-1;
+    markLayerDirty(layer.id);
   } else if(selIdx>=0){
-    // 既存レイヤーに色を上書き
     layers[selIdx].color=curColor; layers[selIdx].opacity=curOpa; layers[selIdx].blend=curBlend;
+    markLayerDirty(layers[selIdx].id);
   }
   buildLayerList(); draw();
   toast(`✅ ${layers[selIdx].name} に ${curColorName} を適用しました`,'ok');
@@ -948,11 +991,13 @@ function undo(){
   redoSt.push(ser()); layers=des(undoSt.pop());
   selIdx=Math.min(selIdx,layers.length-1);
   if(selIdx>=0) selMask=new Uint8Array(layers[selIdx].mask); else selMask=null;
+  markAllDirty(); markSelDirty();
   buildLayerList(); draw();
 }
 function redo(){
   if(!redoSt.length){toast('これ以上やり直せません');return;}
   undoSt.push(ser()); layers=des(redoSt.pop());
+  markAllDirty(); markSelDirty();
   buildLayerList(); draw();
 }
 
