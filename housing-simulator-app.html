@@ -1121,60 +1121,118 @@ document.addEventListener('keydown', e => {
 });
 
 /* ============================================================
-   AI ANALYSIS
+   AI ANALYSIS — 精密カラーセグメンテーション版
    ============================================================ */
+
+// 各部位のサンプルピクセル座標を記録（AI が返した代表点）
+// region = { id, label, samplePoints:[{x,y}], color, paintColor }
+// samplePoints を起点に類似色フラッドフィルで精密塗装する
+
 async function runAI() {
   if (!originalImage) return;
-  if (!API_KEY || !API_KEY.startsWith('sk-')) {
-    openApiModal(); return;
-  }
-  const aibtn = document.getElementById('ai-btn');
+  if (!API_KEY || !API_KEY.startsWith('sk-')) { openApiModal(); return; }
+
+  const aibtn  = document.getElementById('ai-btn');
   const ribbon = document.getElementById('ai-ribbon');
   const lo     = document.getElementById('lo');
+  const loMsg  = document.getElementById('lo-msg');
+
   aibtn.disabled = true;
   ribbon.classList.add('show');
   lo.classList.add('show');
-  document.getElementById('lo-msg').textContent = 'AIが住宅写真を解析しています…';
+  loMsg.textContent = 'AIが住宅写真を解析中… (10〜20秒かかります)';
 
-  const b64 = baseCanvas.toDataURL('image/jpeg',0.85).split(',')[1];
+  // 解析用に縮小コピーを作る（API送信サイズ削減）
+  const sendW = Math.min(baseCanvas.width, 800);
+  const sendH = Math.round(baseCanvas.height * sendW / baseCanvas.width);
+  const tmpC  = document.createElement('canvas');
+  tmpC.width = sendW; tmpC.height = sendH;
+  tmpC.getContext('2d').drawImage(baseCanvas, 0, 0, sendW, sendH);
+  const b64 = tmpC.toDataURL('image/jpeg', 0.82).split(',')[1];
 
-  const prompt = `あなたは住宅外壁塗装の専門家AIです。
-この住宅写真を分析し、塗装可能な各部位の位置をJSON形式のみで返してください。
+  const prompt = `あなたは住宅外壁塗装の画像解析AIです。
+この住宅写真を詳細に分析し、塗装対象となる各部位の情報をJSONで返してください。
 
-検出対象：屋根(roof)、外壁(wall)、雨樋(gutter)、破風板(fascia)、軒天井(soffit)、ドア・玄関(door)
+【検出対象部位】
+- wall（外壁）: 建物の外側の壁面全体
+- roof（屋根）: 屋根部分
+- gutter（雨樋）: 縦樋・横樋
+- fascia（破風板）: 屋根の端の板
+- soffit（軒天井）: 屋根の裏側
+- door（玄関ドア）: 玄関のドア
 
-写真全体を100×100のグリッドとして、各部位の矩形領域をパーセント(x,y,width,height)で返してください。
-現在の外観色もcolorに含めてください。
-見えない部位は含めないでください。
+【重要な指示】
+各部位について以下を返してください：
+1. 写真内のその部位の「代表的な点」を3〜8点、x・yのパーセント座標(0〜100)で
+2. その部位の現在の色（16進数カラーコード）
+3. 部位が占める大まかな矩形（x,y,width,heightをパーセントで）
+4. 部位の色の均一性（uniform:true/false）
 
-厳密にこのJSON形式のみで返答してください（前置き・後置き不要）：
-{"regions":[{"id":"roof","label":"屋根","x":10,"y":5,"width":80,"height":28,"color":"#6A4828"},{"id":"wall","label":"外壁","x":8,"y":40,"width":84,"height":46,"color":"#F0EAD8"}]}`;
+窓・ガラス・植木など塗装しない部分は含めないでください。
+見えない部位も含めないでください。
+
+必ずこのJSON形式のみで返答（前置き・説明文不要）：
+{
+  "regions": [
+    {
+      "id": "wall",
+      "label": "外壁",
+      "color": "#E8DCC8",
+      "rect": {"x":8,"y":35,"width":84,"height":52},
+      "points": [{"x":25,"y":50},{"x":50,"y":55},{"x":75,"y":50},{"x":25,"y":70},{"x":75,"y":70}],
+      "uniform": true
+    }
+  ]
+}`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514', max_tokens:1000,
-        messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
-          {type:'text',text:prompt}
-        ]}]
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
+            { type: 'text', text: prompt }
+          ]
+        }]
       })
     });
-    if(!res.ok){ const e=await res.json(); throw new Error(e.error?.message||'APIエラー '+res.status); }
+
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'APIエラー ' + res.status); }
     const data = await res.json();
-    const txt  = data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const txt  = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
     const m    = txt.match(/\{[\s\S]*"regions"[\s\S]*\}/);
-    if(!m) throw new Error('JSONが見つかりませんでした');
+    if (!m) throw new Error('AI応答からデータを読み取れませんでした');
+
     const parsed = JSON.parse(m[0]);
     aiRegions = parsed.regions || [];
-    document.getElementById('lo-msg').textContent = '認識完了！エリアを描画中…';
-    renderRegions();
+
+    loMsg.textContent = `${aiRegions.length}部位を認識。精密に塗り分け中…`;
+
+    // 各部位をフラッドフィルで精密塗装
+    saveUndo();
+    paintCtx.clearRect(0, 0, paintCanvas.width, paintCanvas.height);
+
+    for (const r of aiRegions) {
+      await paintRegionPrecise(r);
+      partColors[r.label] = { color: r.color, name: r.label };
+    }
+
     buildRegionPanel();
     document.getElementById('regions-section').style.display = 'block';
-    toast(`✅ ${aiRegions.length}個の部位を認識しました`, 'ok');
-  } catch(err) {
+    syncReport(); updateSummary();
+    toast(`✅ ${aiRegions.length}部位を精密に塗り分けました！右パネルから色を変更できます`, 'ok');
+
+  } catch (err) {
     console.error(err);
     toast('AI解析エラー: ' + err.message, 'err');
   } finally {
@@ -1184,57 +1242,143 @@ async function runAI() {
   }
 }
 
-function renderRegions() {
-  const w=paintCanvas.width, h=paintCanvas.height;
-  aiRegions.forEach(r => {
-    const rx=r.x/100*w, ry=r.y/100*h, rw=r.width/100*w, rh=r.height/100*h;
+/* -------------------------------------------------------
+   精密フラッドフィル塗装
+   AI が返した代表点を起点に、色の近いピクセルを
+   スマートフラッドフィルで塗りつぶす
+------------------------------------------------------- */
+function paintRegionPrecise(region) {
+  return new Promise(resolve => {
+    const W = paintCanvas.width, H = paintCanvas.height;
+    const baseData = baseCtx.getImageData(0, 0, W, H).data;
+    const paintImg = paintCtx.getImageData(0, 0, W, H);
+    const pd = paintImg.data;
+
+    // 塗装色をRGBAに変換
+    let fhex = region.color.replace('#','');
+    if (fhex.length === 3) fhex = fhex.split('').map(c=>c+c).join('');
+    const fn = parseInt(fhex, 16);
+    const fr=(fn>>16)&255, fg=(fn>>8)&255, fb=fn&255;
+    const fa = Math.round(0.72 * 255); // 不透明度72%
+
+    // 矩形内のピクセルに対して色類似度フィルタで塗装
+    const rect = region.rect || {x:0,y:0,width:100,height:100};
+    const rx0 = Math.round(rect.x/100*W);
+    const ry0 = Math.round(rect.y/100*H);
+    const rx1 = Math.min(W, Math.round((rect.x+rect.width)/100*W));
+    const ry1 = Math.min(H, Math.round((rect.y+rect.height)/100*H));
+
+    // 代表点から基準色を収集
+    const points = region.points || [];
+    const refColors = [];
+    for (const p of points) {
+      const px = Math.round(p.x/100*W);
+      const py = Math.round(p.y/100*H);
+      if (px>=0 && px<W && py>=0 && py<H) {
+        const i = (py*W+px)*4;
+        refColors.push([baseData[i], baseData[i+1], baseData[i+2]]);
+      }
+    }
+
+    if (refColors.length === 0) {
+      // 代表点がなければ矩形中央を使う
+      const cx = Math.round((rx0+rx1)/2), cy = Math.round((ry0+ry1)/2);
+      const i  = (cy*W+cx)*4;
+      refColors.push([baseData[i], baseData[i+1], baseData[i+2]]);
+    }
+
+    // 基準色の平均を求める
+    const avgR = refColors.reduce((s,c)=>s+c[0],0)/refColors.length;
+    const avgG = refColors.reduce((s,c)=>s+c[1],0)/refColors.length;
+    const avgB = refColors.reduce((s,c)=>s+c[2],0)/refColors.length;
+
+    // 許容色差（部位により調整）
+    const tol = region.uniform ? 55 : 75;
+
+    // 矩形内を走査して類似色ピクセルを塗装
+    let painted = 0;
+    for (let y = ry0; y < ry1; y++) {
+      for (let x = rx0; x < rx1; x++) {
+        const i = (y*W+x)*4;
+        const dr = baseData[i]  - avgR;
+        const dg = baseData[i+1]- avgG;
+        const db = baseData[i+2]- avgB;
+        const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+        if (dist <= tol) {
+          pd[i]   = fr;
+          pd[i+1] = fg;
+          pd[i+2] = fb;
+          pd[i+3] = fa;
+          painted++;
+        }
+      }
+    }
+
+    paintCtx.putImageData(paintImg, 0, 0);
+
+    // ラベルを中央に描画
+    const cx = Math.round((rx0+rx1)/2);
+    const cy = Math.round((ry0+ry1)/2);
     paintCtx.save();
-    paintCtx.globalCompositeOperation='source-over';
-    paintCtx.fillStyle = hex2rgba(r.color, 0.52);
-    paintCtx.fillRect(rx,ry,rw,rh);
-    paintCtx.fillStyle='rgba(255,255,255,0.82)';
-    const fs = Math.max(11, Math.round(rh*0.17));
-    paintCtx.font=`bold ${fs}px sans-serif`;
-    paintCtx.fillText(r.label, rx+6, ry+rh*0.38);
+    paintCtx.font = `bold ${Math.max(12, Math.round((ry1-ry0)*0.12))}px sans-serif`;
+    paintCtx.fillStyle = 'rgba(255,255,255,0.9)';
+    paintCtx.textAlign = 'center';
+    paintCtx.textBaseline = 'middle';
+    // テキスト背景
+    const tw = paintCtx.measureText(region.label).width;
+    paintCtx.fillStyle = 'rgba(0,0,0,0.35)';
+    paintCtx.fillRect(cx-tw/2-6, cy-10, tw+12, 20);
+    paintCtx.fillStyle = 'rgba(255,255,255,0.95)';
+    paintCtx.fillText(region.label, cx, cy);
     paintCtx.restore();
-    partColors[r.label] = {color:r.color, name:r.label};
+
+    resolve();
   });
-  syncReport(); updateSummary();
 }
 
 function buildRegionPanel() {
   const list = document.getElementById('region-list');
   list.innerHTML = '';
-  aiRegions.forEach((r,i) => {
+  aiRegions.forEach((r, i) => {
     const el = document.createElement('div');
-    el.className='reg-item'; el.id='ri-'+i;
-    el.innerHTML=`<div class="reg-dot" id="rdot-${i}" style="background:${r.color};"></div><div class="reg-lbl">${r.label}</div><div class="reg-code" id="rcode-${i}">${r.color.toUpperCase()}</div>`;
+    el.className = 'reg-item'; el.id = 'ri-' + i;
+    el.innerHTML = `
+      <div class="reg-dot" id="rdot-${i}" style="background:${r.color};"></div>
+      <div class="reg-lbl">${r.label}</div>
+      <div class="reg-code" id="rcode-${i}">${r.color.toUpperCase()}</div>
+    `;
     el.onclick = () => applyRegion(i);
     list.appendChild(el);
   });
 }
 
-function applyRegion(i) {
-  const r=aiRegions[i];
-  const w=paintCanvas.width, h=paintCanvas.height;
-  const rx=r.x/100*w, ry=r.y/100*h, rw=r.width/100*w, rh=r.height/100*h;
+async function applyRegion(i) {
+  const r = aiRegions[i];
   saveUndo();
-  paintCtx.save();
-  paintCtx.clearRect(rx,ry,rw,rh);
-  paintCtx.globalCompositeOperation='source-over';
-  paintCtx.fillStyle=hex2rgba(curColor,brushOpa);
-  paintCtx.fillRect(rx,ry,rw,rh);
-  paintCtx.fillStyle='rgba(255,255,255,0.8)';
-  const fs=Math.max(11,Math.round(rh*0.17));
-  paintCtx.font=`bold ${fs}px sans-serif`;
-  paintCtx.fillText(r.label,rx+6,ry+rh*0.38);
-  paintCtx.restore();
+
+  // 選択部位のエリアをクリアして再塗装
+  const W = paintCanvas.width, H = paintCanvas.height;
+  const rect = r.rect || {x:0,y:0,width:100,height:100};
+  const rx0 = Math.round(rect.x/100*W);
+  const ry0 = Math.round(rect.y/100*H);
+  const rx1 = Math.min(W, Math.round((rect.x+rect.width)/100*W));
+  const ry1 = Math.min(H, Math.round((rect.y+rect.height)/100*H));
+
+  // その部位エリアのペイントをクリア
+  paintCtx.clearRect(rx0, ry0, rx1-rx0, ry1-ry0);
+
+  // 新しい色で再塗装
+  const prevColor = r.color;
   aiRegions[i].color = curColor;
-  document.getElementById('rdot-'+i).style.background = curColor;
-  document.getElementById('rcode-'+i).textContent     = curColor.toUpperCase();
-  document.querySelectorAll('.reg-item').forEach(el=>el.classList.remove('active'));
+  await paintRegionPrecise(aiRegions[i]);
+
+  // パネル更新
+  document.getElementById('rdot-'+i).style.background  = curColor;
+  document.getElementById('rcode-'+i).textContent      = curColor.toUpperCase();
+  document.querySelectorAll('.reg-item').forEach(el => el.classList.remove('active'));
   document.getElementById('ri-'+i).classList.add('active');
-  partColors[r.label]={color:curColor,name:curColorName};
+  partColors[r.label] = { color: curColor, name: curColorName };
+
   syncReport(); updateSummary();
   toast(`${r.label} → ${curColorName}`);
 }
