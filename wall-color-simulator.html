@@ -4,1428 +4,1355 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>外壁カラーシミュレーター</title>
+<title>外壁カラーシミュレーター PRO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#1A1E28;--panel:#22273A;--panel2:#2C3248;--border:#3A4060;
+  --bg:#151820;--panel:#1E2230;--panel2:#262A3A;--border:#323650;
   --acc:#4F8EF7;--acc2:#3A6FD8;--gold:#E8A830;
-  --green:#2ECC71;--red:#E74C3C;--purple:#9B59B6;
+  --green:#2ECC71;--red:#E74C3C;--purple:#9B59B6;--orange:#E67E22;
   --tx:#F0F4FF;--tx2:#A0AACC;--tx3:#5A6080;
   --r:10px;--rs:6px;
 }
 html,body{height:100%;font-family:-apple-system,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--bg);color:var(--tx);overflow:hidden}
 button,input,select,textarea{font-family:inherit}
-
-/* ===== LAYOUT ===== */
 .app{display:flex;flex-direction:column;height:100vh}
 
 /* TOPBAR */
-.top{height:52px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
-.top-logo{display:flex;align-items:center;gap:9px}
-.top-icon{width:32px;height:32px;background:linear-gradient(135deg,#4F8EF7,#9B59B6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px}
-.top-title{font-size:15px;font-weight:700;letter-spacing:.03em}
-.top-sub{font-size:10px;color:var(--tx2);letter-spacing:.08em}
-.top-spacer{flex:1}
-.top-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--tx2);border-radius:var(--rs);padding:6px 12px;font-size:11px;cursor:pointer;transition:all .15s}
-.top-btn:hover{background:rgba(255,255,255,.14);color:var(--tx)}
+.top{height:50px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;z-index:10}
+.top-brand{display:flex;align-items:center;gap:9px;margin-right:8px}
+.top-icon{width:30px;height:30px;background:linear-gradient(135deg,#4F8EF7,#9B59B6);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.top-title{font-size:14px;font-weight:700}
+.top-sub{font-size:9px;color:var(--tx3);letter-spacing:.1em}
+.top-sep{width:1px;height:28px;background:var(--border)}
+.top-btn{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--tx2);border-radius:var(--rs);padding:5px 11px;font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.top-btn:hover{background:rgba(255,255,255,.13);color:var(--tx)}
+.top-btn.accent{background:var(--acc);border-color:var(--acc);color:#fff}
+.top-btn.accent:hover{background:var(--acc2)}
+.spacer{flex:1}
+input[type=file]#file-inp{display:none}
 
 /* MAIN */
 .main{display:flex;flex:1;overflow:hidden}
 
-/* LEFT TOOLBAR */
-.toolbar{width:56px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;flex-shrink:0}
-.tb-btn{width:40px;height:40px;border-radius:var(--rs);border:none;background:transparent;color:var(--tx2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;position:relative}
-.tb-btn:hover{background:rgba(255,255,255,.1);color:var(--tx)}
-.tb-btn.active{background:var(--acc);color:#fff}
-.tb-btn[title]:hover::after{content:attr(title);position:absolute;left:52px;top:50%;transform:translateY(-50%);background:#111;color:#fff;font-size:10px;padding:4px 8px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:100}
-.tb-sep{width:32px;height:1px;background:var(--border);margin:4px 0}
+/* TOOLBAR */
+.toolbar{width:52px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px;flex-shrink:0;overflow-y:auto}
+.tb{width:38px;height:38px;border-radius:var(--rs);border:none;background:transparent;color:var(--tx3);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .14s;position:relative;-webkit-tap-highlight-color:transparent}
+.tb:hover{background:rgba(255,255,255,.09);color:var(--tx)}
+.tb.on{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(79,142,247,.4)}
+.tb-sep{width:30px;height:1px;background:var(--border);margin:3px 0;flex-shrink:0}
+/* tooltip */
+.tb[data-tip]:hover::after{content:attr(data-tip);position:absolute;left:46px;top:50%;transform:translateY(-50%);background:#000;color:#fff;font-size:10px;padding:4px 8px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:200;border:1px solid #333}
 
 /* CANVAS AREA */
-.canvas-wrap{flex:1;position:relative;overflow:hidden;background:#0D0F18;display:flex;align-items:center;justify-content:center}
-#c-photo{position:absolute;display:block}
-#c-mask{position:absolute;display:block;pointer-events:none}
-#c-interact{position:absolute;display:block;cursor:crosshair}
-.canvas-placeholder{text-align:center;color:rgba(255,255,255,.2);pointer-events:none;user-select:none}
-.cp-icon{font-size:52px;margin-bottom:14px}
-.cp-text{font-size:14px;line-height:1.9}
+.cw{flex:1;position:relative;overflow:hidden;background:#0A0C12;display:flex;align-items:center;justify-content:center}
+#c-photo,#c-overlay,#c-draw{position:absolute;display:block;image-rendering:pixelated}
+#c-draw{z-index:10}
+#c-overlay{z-index:5;pointer-events:none}
+#c-photo{z-index:1}
+.upload-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;pointer-events:none}
+.upload-ph.active{pointer-events:all;cursor:pointer}
+.uph-icon{font-size:48px;margin-bottom:12px;opacity:.3}
+.uph-text{font-size:13px;color:rgba(255,255,255,.3);line-height:1.9;text-align:center;margin-bottom:16px}
+.uph-btn{background:var(--acc);color:#fff;border:none;border-radius:9px;padding:12px 28px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(79,142,247,.4)}
+#zoom-hud{position:absolute;bottom:12px;right:12px;display:none;gap:4px;z-index:15}
+#zoom-hud button{width:30px;height:30px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:var(--rs);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+#zoom-hud span{background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.14);color:var(--tx2);border-radius:var(--rs);padding:0 9px;font-size:10px;display:flex;align-items:center}
+#cursor-ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.75);pointer-events:none;display:none;transform:translate(-50%,-50%);z-index:30}
 
-/* ZOOM CONTROLS */
-.zoom-ctrl{position:absolute;bottom:16px;right:16px;display:flex;gap:5px;z-index:10}
-.zoom-btn{width:32px;height:32px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:var(--rs);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.zoom-btn:hover{background:rgba(255,255,255,.15)}
-.zoom-label{background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);color:var(--tx2);border-radius:var(--rs);padding:0 10px;font-size:11px;display:flex;align-items:center}
-
-/* CURSOR PREVIEW */
-#cursor-ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.8);pointer-events:none;display:none;transform:translate(-50%,-50%);z-index:20}
+/* STEP GUIDE */
+.step-guide{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.72);border:1px solid rgba(79,142,247,.4);border-radius:20px;padding:6px 16px;font-size:11px;color:#fff;z-index:15;pointer-events:none;white-space:nowrap;backdrop-filter:blur(4px);display:none}
 
 /* RIGHT PANEL */
-.right-panel{width:300px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
-.right-panel::-webkit-scrollbar{width:4px}
-.right-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.rp{width:290px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.rp::-webkit-scrollbar{width:3px}
+.rp::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sec{padding:12px 13px;border-bottom:1px solid var(--border)}
+.sec-ttl{font-size:10px;font-weight:700;color:var(--tx2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.sec-dot{width:6px;height:6px;border-radius:50%}
 
-.rp-sec{padding:14px 14px;border-bottom:1px solid var(--border)}
-.rp-title{font-size:10px;font-weight:700;color:var(--tx2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.rp-title-dot{width:7px;height:7px;border-radius:50%;background:var(--acc)}
-
-/* TOOL SETTINGS */
-.tolerance-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.tolerance-row label{font-size:10px;color:var(--tx2);white-space:nowrap;min-width:60px}
-.tolerance-row input[type=range]{flex:1;accent-color:var(--acc)}
-.tolerance-row span{font-size:10px;color:var(--tx3);min-width:28px;text-align:right}
+/* TOOL STEPS */
+.step-list{display:flex;flex-direction:column;gap:5px}
+.step-item{display:flex;align-items:flex-start;gap:8px;padding:7px 9px;border-radius:var(--rs);background:var(--panel2);border:1.5px solid var(--border);transition:all .14s}
+.step-item.active{border-color:var(--acc);background:rgba(79,142,247,.1)}
+.step-item.done{border-color:var(--green);background:rgba(46,204,113,.06)}
+.step-n{width:20px;height:20px;border-radius:50%;background:var(--border);color:var(--tx3);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-item.active .step-n{background:var(--acc);color:#fff}
+.step-item.done .step-n{background:var(--green);color:#fff}
+.step-info{flex:1}
+.step-title{font-size:11px;font-weight:700;color:var(--tx);margin-bottom:2px}
+.step-desc{font-size:10px;color:var(--tx3);line-height:1.5}
 
 /* LAYER LIST */
-.layer-list{display:flex;flex-direction:column;gap:5px;max-height:280px;overflow-y:auto}
+.layer-list{display:flex;flex-direction:column;gap:4px;max-height:240px;overflow-y:auto}
 .layer-list::-webkit-scrollbar{width:3px}
 .layer-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-.layer-item{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:7px 9px;cursor:pointer;transition:all .14s;-webkit-tap-highlight-color:transparent}
-.layer-item:hover{border-color:var(--acc)}
-.layer-item.sel{border-color:var(--acc);background:rgba(79,142,247,.12)}
-.layer-thumb{width:28px;height:28px;border-radius:4px;border:1px solid rgba(255,255,255,.1);flex-shrink:0;overflow:hidden}
-.layer-thumb canvas{width:100%;height:100%;display:block}
-.layer-info{flex:1;min-width:0}
-.layer-name{font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.layer-px{font-size:9px;color:var(--tx3);margin-top:1px}
-.layer-actions{display:flex;gap:4px}
-.la-btn{width:24px;height:24px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--tx3);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .14s}
-.la-btn:hover{border-color:var(--acc);color:var(--acc)}
-.la-btn.del:hover{border-color:var(--red);color:var(--red)}
-.layer-empty{font-size:11px;color:var(--tx3);text-align:center;padding:16px 0;line-height:1.7}
+.litem{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:6px 8px;cursor:pointer;transition:all .14s;-webkit-tap-highlight-color:transparent}
+.litem:hover{border-color:var(--acc)}
+.litem.sel{border-color:var(--acc);background:rgba(79,142,247,.1)}
+.litem-color{width:24px;height:24px;border-radius:4px;border:1px solid rgba(255,255,255,.1);flex-shrink:0}
+.litem-info{flex:1;min-width:0}
+.litem-name{font-size:11px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.litem-sub{font-size:9px;color:var(--tx3);margin-top:1px}
+.litem-act{display:flex;gap:3px}
+.lact{width:22px;height:22px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--tx3);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .14s}
+.lact:hover{border-color:var(--acc);color:var(--acc)}
+.lact.del:hover{border-color:var(--red);color:var(--red)}
+.layer-empty{font-size:10px;color:var(--tx3);text-align:center;padding:14px 0;line-height:1.7}
 
-/* COLOR SECTION */
-.color-display{display:flex;align-items:center;gap:10px;margin-bottom:12px;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px}
-.color-swatch-big{width:44px;height:44px;border-radius:7px;border:2px solid rgba(255,255,255,.12);flex-shrink:0;cursor:pointer;transition:transform .15s}
-.color-swatch-big:hover{transform:scale(1.06)}
-.color-hex-inp{flex:1;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:7px 10px;font-size:13px;font-family:monospace;color:var(--tx);outline:none;transition:border-color .2s}
-.color-hex-inp:focus{border-color:var(--acc)}
-.color-picker-inp{width:0;height:0;opacity:0;position:absolute}
+/* REFINE TOOLS */
+.refine-row{display:flex;gap:5px;margin-bottom:8px}
+.ref-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;border:1.5px solid var(--border);border-radius:var(--rs);padding:7px 5px;font-size:10px;font-weight:600;cursor:pointer;background:var(--panel2);color:var(--tx2);transition:all .14s;-webkit-tap-highlight-color:transparent}
+.ref-btn:hover{border-color:var(--acc);color:var(--acc)}
+.ref-btn.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.ref-btn.on-red{background:var(--red);color:#fff;border-color:var(--red)}
+.sl-row{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.sl-row label{font-size:10px;color:var(--tx2);white-space:nowrap;min-width:58px}
+.sl-row input[type=range]{flex:1;accent-color:var(--acc)}
+.sl-row span{font-size:10px;color:var(--tx3);min-width:30px;text-align:right}
 
-.palette-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:4px}
-.pal-sw{aspect-ratio:1;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:transform .14s,border-color .14s;box-shadow:0 1px 4px rgba(0,0,0,.3);position:relative}
-.pal-sw:hover{transform:scale(1.12)}
-.pal-sw.sel{border-color:#fff;transform:scale(1.12)}
-.pal-sw::after{content:attr(data-name);position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#111;color:#fff;font-size:9px;padding:3px 7px;border-radius:3px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;z-index:50}
-.pal-sw:hover::after{opacity:1}
-.palette-scroll{max-height:200px;overflow-y:auto;padding-right:2px}
-.palette-scroll::-webkit-scrollbar{width:3px}
-.palette-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+/* COLOR */
+.color-disp{display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:9px 11px;margin-bottom:9px}
+.color-big{width:42px;height:42px;border-radius:7px;border:2px solid rgba(255,255,255,.12);flex-shrink:0;cursor:pointer;transition:transform .14s}
+.color-big:hover{transform:scale(1.06)}
+input.color-pick{width:0;height:0;opacity:0;position:absolute}
+.hex-inp{flex:1;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:6px 9px;font-size:12px;font-family:monospace;color:var(--tx);outline:none;transition:border-color .2s;width:100%}
+.hex-inp:focus{border-color:var(--acc)}
+#color-name-txt{font-size:9px;color:var(--tx3);margin-top:3px;padding:0 2px}
 
-.apply-btn{width:100%;background:linear-gradient(135deg,var(--acc),var(--purple));color:#fff;border:none;border-radius:var(--rs);padding:11px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;transition:filter .15s,transform .1s;display:flex;align-items:center;justify-content:center;gap:7px}
+/* PALETTE TABS */
+.pal-tabs{display:flex;gap:4px;margin-bottom:7px}
+.pal-tab{flex:1;border:1px solid var(--border);border-radius:var(--rs);padding:5px;font-size:10px;font-weight:700;cursor:pointer;background:var(--panel2);color:var(--tx3);transition:all .14s;text-align:center}
+.pal-tab.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.pal-scroll{max-height:190px;overflow-y:auto;padding-right:2px}
+.pal-scroll::-webkit-scrollbar{width:3px}
+.pal-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.pal-section-title{font-size:9px;color:var(--tx3);letter-spacing:.06em;margin:6px 0 4px;padding-left:1px}
+.pal-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:4px}
+.psw{aspect-ratio:1;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:transform .13s,border-color .13s;box-shadow:0 1px 3px rgba(0,0,0,.3);position:relative}
+.psw:hover{transform:scale(1.12)}
+.psw.on{border-color:#fff;transform:scale(1.12)}
+.psw::after{content:attr(data-tip);position:absolute;bottom:calc(100%+4px);left:50%;transform:translateX(-50%);background:#111;color:#fff;font-size:9px;padding:3px 7px;border-radius:3px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .14s;z-index:100;border:1px solid #333}
+.psw:hover::after{opacity:1}
+
+/* BLEND */
+.blend-row{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.blend-row label{font-size:10px;color:var(--tx2);white-space:nowrap}
+.blend-sel{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:5px 7px;color:var(--tx);font-size:10px;outline:none;cursor:pointer}
+
+/* APPLY BTN */
+.apply-btn{width:100%;background:linear-gradient(135deg,var(--acc),var(--purple));color:#fff;border:none;border-radius:var(--rs);padding:11px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:filter .14s,transform .1s;letter-spacing:.03em}
 .apply-btn:hover{filter:brightness(1.1)}
 .apply-btn:active{transform:scale(.97)}
-.apply-btn:disabled{opacity:.4;cursor:not-allowed}
-
-/* BLEND MODE */
-.blend-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.blend-row label{font-size:10px;color:var(--tx2);white-space:nowrap}
-.blend-sel{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:5px 8px;color:var(--tx);font-size:11px;outline:none;cursor:pointer}
-.opacity-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.opacity-row label{font-size:10px;color:var(--tx2);white-space:nowrap;min-width:44px}
-.opacity-row input[type=range]{flex:1;accent-color:var(--acc)}
-.opacity-row span{font-size:10px;color:var(--tx3);min-width:28px;text-align:right}
+.apply-btn:disabled{opacity:.38;cursor:not-allowed;filter:none}
 
 /* EXPORT */
-.exp-row{display:flex;gap:6px}
-.exp-btn{flex:1;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:9px 6px;font-size:11px;font-weight:600;cursor:pointer;color:var(--tx2);transition:all .14s;display:flex;align-items:center;justify-content:center;gap:5px}
-.exp-btn:hover{border-color:var(--acc);color:var(--acc)}
-.exp-btn.pdf{background:rgba(231,76,60,.08);border-color:rgba(231,76,60,.3);color:#E74C3C}
-.exp-btn.pdf:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.exp-btn{display:flex;align-items:center;justify-content:center;gap:4px;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:8px 5px;font-size:10px;font-weight:600;cursor:pointer;color:var(--tx2);transition:all .14s}
+.exp-btn:hover{border-color:var(--acc);color:var(--acc);background:rgba(79,142,247,.08)}
+.exp-btn.full{grid-column:1/-1}
+.exp-btn.red{border-color:rgba(231,76,60,.3);color:var(--red);background:rgba(231,76,60,.05)}
+.exp-btn.red:hover{background:var(--red);color:#fff;border-color:var(--red)}
 
-/* STATUS BAR */
-.status{height:26px;background:var(--panel);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:16px;flex-shrink:0}
-.st-item{font-size:10px;color:var(--tx3);display:flex;align-items:center;gap:5px}
-.st-dot{width:6px;height:6px;border-radius:50%;background:var(--tx3)}
-.st-dot.active{background:var(--green)}
+/* STATUS */
+.status{height:24px;background:var(--panel);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:14px;flex-shrink:0}
+.si{font-size:9px;color:var(--tx3);display:flex;align-items:center;gap:4px}
+.sdot{width:5px;height:5px;border-radius:50%;background:var(--tx3)}
+.sdot.on{background:var(--green)}
+
+/* INFO PILL */
+.ipill{border-radius:var(--rs);padding:7px 9px;font-size:10px;line-height:1.7;border:1px solid;margin-bottom:8px}
+.ipill.blue{background:rgba(79,142,247,.1);border-color:rgba(79,142,247,.25);color:rgba(160,200,255,.9)}
+.ipill.gold{background:rgba(232,168,48,.08);border-color:rgba(232,168,48,.25);color:rgba(240,200,120,.9)}
 
 /* TOAST */
-.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%) translateY(10px);background:#111;color:#fff;font-size:12px;font-weight:600;padding:9px 20px;border-radius:20px;opacity:0;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:opacity .24s,transform .24s;white-space:nowrap;z-index:9999;max-width:90vw;text-align:center}
+.toast{position:fixed;bottom:36px;left:50%;transform:translateX(-50%) translateY(10px);background:#111;color:#fff;font-size:12px;font-weight:600;padding:9px 20px;border-radius:20px;opacity:0;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:opacity .24s,transform .24s;white-space:nowrap;z-index:9999;max-width:92vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.ok{background:#1A7A42}
 .toast.err{background:#B83030}
-.toast.info{background:#1A3A6A}
 
-/* UPLOAD OVERLAY */
-.upload-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;cursor:pointer}
-.upload-label{display:flex;flex-direction:column;align-items:center;cursor:pointer}
-.upload-label input{display:none}
-.upload-btn{background:linear-gradient(135deg,var(--acc),var(--purple));color:#fff;border:none;border-radius:10px;padding:14px 32px;font-size:14px;font-weight:700;cursor:pointer;margin-top:14px;box-shadow:0 4px 16px rgba(79,142,247,.3)}
-
-/* INFO PILL */
-.info-pill{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.25);border-radius:var(--rs);padding:7px 10px;font-size:10px;color:rgba(79,142,247,.9);line-height:1.7;margin-bottom:10px}
-
-/* RESPONSIVE */
-@media(max-width:768px){
-  .right-panel{width:260px}
-  .toolbar{width:44px}
-  .tb-btn{width:34px;height:34px;font-size:16px}
-}
-@media(max-width:600px){
-  .top-sub{display:none}
-  .right-panel{display:none}
-}
+/* MOBILE */
+@media(max-width:700px){.rp{width:250px}.toolbar{width:44px}.tb{width:34px;height:34px;font-size:15px}}
+@media(max-width:560px){.top-sub,.top-sep{display:none}.rp{display:none}}
 </style>
 </head>
 <body>
 <div class="app">
 
-<!-- TOPBAR -->
+<!-- TOP BAR -->
 <div class="top">
-  <div class="top-logo">
+  <div class="top-brand">
     <div class="top-icon">🏠</div>
-    <div>
-      <div class="top-title">外壁カラーシミュレーター</div>
-      <div class="top-sub">WALL COLOR SIMULATOR PRO</div>
-    </div>
+    <div><div class="top-title">外壁カラーシミュレーター</div><div class="top-sub">PRO</div></div>
   </div>
-  <div class="top-spacer"></div>
-  <button class="top-btn" onclick="document.getElementById('file-inp').click()">📷 写真を開く</button>
+  <div class="top-sep"></div>
+  <button class="top-btn accent" onclick="document.getElementById('file-inp').click()">📷 写真を開く</button>
+  <input type="file" id="file-inp" accept="image/*" onchange="loadPhoto(event)">
   <button class="top-btn" onclick="undoAct()">↩ 戻す</button>
   <button class="top-btn" onclick="redoAct()">↪ やり直す</button>
-  <input type="file" id="file-inp" accept="image/*" style="display:none" onchange="loadPhoto(event)">
+  <div class="spacer"></div>
+  <button class="top-btn" onclick="exportPNG()">🖼️ PNG</button>
+  <button class="top-btn" onclick="exportComparison()">↔️ 比較</button>
+  <button class="top-btn" onclick="exportPDF()">📄 PDF</button>
 </div>
 
 <div class="main">
 
-<!-- LEFT TOOLBAR -->
+<!-- TOOLBAR -->
 <div class="toolbar">
-  <button class="tb-btn active" id="tb-wand" onclick="setTool('wand')" title="マジックワンド（クリックで自動選択）">🪄</button>
-  <button class="tb-btn" id="tb-brush" onclick="setTool('brush')" title="ブラシ（手動で塗る）">🖌️</button>
-  <button class="tb-btn" id="tb-eraser" onclick="setTool('eraser')" title="消しゴム（選択を消す）">🧹</button>
-  <button class="tb-btn" id="tb-lasso" onclick="setTool('lasso')" title="なげなわ（囲んで選択）">⭕</button>
+  <!-- 選択ツール -->
+  <button class="tb" id="tb-rect"   onclick="setTool('rect')"   data-tip="矩形で囲む">⬜</button>
+  <button class="tb" id="tb-lasso"  onclick="setTool('lasso')"  data-tip="多角形で囲む">⬡</button>
+  <button class="tb" id="tb-wand"   onclick="setTool('wand')"   data-tip="マジックワンド">🪄</button>
   <div class="tb-sep"></div>
-  <button class="tb-btn" onclick="clearSelection()" title="選択解除">✕</button>
-  <button class="tb-btn" onclick="invertSelection()" title="選択反転">⬜</button>
+  <!-- 修正ツール -->
+  <button class="tb" id="tb-add"    onclick="setTool('add')"    data-tip="ブラシ追加">🖌️</button>
+  <button class="tb" id="tb-erase"  onclick="setTool('erase')"  data-tip="消しゴム">🧹</button>
   <div class="tb-sep"></div>
-  <button class="tb-btn" onclick="zoomIn()" title="ズームイン">🔍</button>
-  <button class="tb-btn" onclick="zoomOut()" title="ズームアウト">🔎</button>
-  <button class="tb-btn" onclick="resetZoom()" title="全体表示">⊡</button>
+  <!-- その他 -->
+  <button class="tb" id="tb-move"   onclick="setTool('move')"   data-tip="移動/パン">✋</button>
+  <button class="tb"                onclick="clearSel()"        data-tip="選択解除">✕</button>
+  <div class="tb-sep"></div>
+  <button class="tb" onclick="zoomIn()"    data-tip="ズームイン">🔍</button>
+  <button class="tb" onclick="zoomOut()"   data-tip="ズームアウト">🔎</button>
+  <button class="tb" onclick="resetView()" data-tip="全体表示">⊡</button>
 </div>
 
 <!-- CANVAS -->
-<div class="canvas-wrap" id="canvas-wrap">
+<div class="cw" id="cw">
   <canvas id="c-photo"></canvas>
-  <canvas id="c-mask"></canvas>
-  <canvas id="c-interact"></canvas>
+  <canvas id="c-overlay"></canvas>
+  <canvas id="c-draw"></canvas>
   <div id="cursor-ring"></div>
+  <div class="step-guide" id="step-guide"></div>
 
   <!-- Upload placeholder -->
-  <div class="upload-overlay" id="upload-overlay">
-    <label class="upload-label">
-      <input type="file" accept="image/*" onchange="loadPhoto(event)">
-      <div class="canvas-placeholder">
-        <div class="cp-icon">🏠</div>
-        <div class="cp-text">
-          建物の写真をアップロード<br>
-          <small style="font-size:11px;opacity:.6">JPG / PNG / HEIC 対応</small>
-        </div>
-      </div>
-      <button class="upload-btn" type="button" onclick="this.closest('label').querySelector('input').click()">📂 写真を選ぶ</button>
+  <div class="upload-ph active" id="upload-ph">
+    <label style="display:flex;flex-direction:column;align-items:center;cursor:pointer">
+      <input type="file" accept="image/*" style="display:none" onchange="loadPhoto(event)">
+      <div class="uph-icon">🏠</div>
+      <div class="uph-text">建物の写真をアップロードしてください<br><small style="font-size:10px;opacity:.6">JPG / PNG / HEIC 対応</small></div>
+      <button class="uph-btn" type="button" onclick="this.closest('label').querySelector('input').click()">📂 写真を選ぶ</button>
     </label>
   </div>
 
-  <!-- Zoom controls -->
-  <div class="zoom-ctrl" id="zoom-ctrl" style="display:none">
-    <button class="zoom-btn" onclick="zoomIn()">＋</button>
-    <div class="zoom-label" id="zoom-label">100%</div>
-    <button class="zoom-btn" onclick="zoomOut()">－</button>
+  <!-- Zoom HUD -->
+  <div id="zoom-hud" style="display:none;position:absolute;bottom:12px;right:12px;display:none;gap:4px;z-index:15">
+    <button onclick="zoomOut()" style="width:30px;height:30px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:6px;cursor:pointer;font-size:16px">－</button>
+    <span id="zoom-lbl" style="background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.14);color:#A0AACC;border-radius:6px;padding:0 10px;font-size:11px;display:flex;align-items:center">100%</span>
+    <button onclick="zoomIn()"  style="width:30px;height:30px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:6px;cursor:pointer;font-size:16px">＋</button>
   </div>
 </div>
 
 <!-- RIGHT PANEL -->
-<div class="right-panel">
+<div class="rp">
 
-  <!-- Tool Settings -->
-  <div class="rp-sec">
-    <div class="rp-title"><div class="rp-title-dot"></div>ツール設定</div>
-    <div class="info-pill" id="tool-hint">
-      🪄 <strong>マジックワンド</strong>：外壁などをクリックすると類似色を自動選択してレイヤーを作成します
-    </div>
-    <div class="tolerance-row">
-      <label>選択の許容値</label>
-      <input type="range" id="tolerance" min="5" max="120" value="40" oninput="updTol()">
-      <span id="tol-v">40</span>
-    </div>
-    <div class="tolerance-row" id="brush-size-row" style="display:none">
-      <label>ブラシサイズ</label>
-      <input type="range" id="brush-sz" min="3" max="80" value="18" oninput="updBrSz()">
-      <span id="br-sz-v">18px</span>
+  <!-- STEP GUIDE -->
+  <div class="sec">
+    <div class="sec-ttl"><div class="sec-dot" style="background:var(--acc)"></div>操作ガイド</div>
+    <div class="step-list">
+      <div class="step-item active" id="si-1">
+        <div class="step-n">1</div>
+        <div class="step-info">
+          <div class="step-title">範囲を囲む</div>
+          <div class="step-desc">⬜矩形 または ⬡多角形で塗りたい部位（外壁など）を大まかに囲んでください</div>
+        </div>
+      </div>
+      <div class="step-item" id="si-2">
+        <div class="step-n">2</div>
+        <div class="step-info">
+          <div class="step-title">自動解析で塗り分け</div>
+          <div class="step-desc">囲んだ範囲の中を色で自動解析。窓・配管など塗らない部分は自動除外</div>
+        </div>
+      </div>
+      <div class="step-item" id="si-3">
+        <div class="step-n">3</div>
+        <div class="step-info">
+          <div class="step-title">手動で微調整</div>
+          <div class="step-desc">🖌️ブラシで追加 / 🧹消しゴムで除外して精度を上げてください</div>
+        </div>
+      </div>
+      <div class="step-item" id="si-4">
+        <div class="step-n">4</div>
+        <div class="step-info">
+          <div class="step-title">色を選んで適用</div>
+          <div class="step-desc">下のパレットから塗装色を選び「色を適用」ボタンを押す</div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Layers -->
-  <div class="rp-sec">
-    <div class="rp-title"><div class="rp-title-dot" style="background:var(--gold)"></div>レイヤー
-      <span style="margin-left:auto;font-size:9px;color:var(--tx3)" id="layer-count">0 レイヤー</span>
+  <!-- TOLERANCE (囲み後の自動解析感度) -->
+  <div class="sec" id="tol-sec">
+    <div class="sec-ttl"><div class="sec-dot" style="background:var(--gold)"></div>自動解析 設定</div>
+    <div class="ipill blue">囲んだ範囲を「解析して塗る」ボタンで処理します。許容値を上げると広く塗ります。</div>
+    <div class="sl-row">
+      <label>色の許容値</label>
+      <input type="range" id="tol" min="5" max="120" value="35" oninput="updTol()">
+      <span id="tol-v">35</span>
+    </div>
+    <button id="analyze-btn" onclick="analyzeSelection()" disabled style="width:100%;background:var(--gold);border:none;border-radius:var(--rs);padding:9px;font-size:12px;font-weight:700;cursor:pointer;color:#1a1a1a;display:flex;align-items:center;justify-content:center;gap:6px;opacity:.4;transition:opacity .2s">
+      ✨ 囲んだ範囲を解析して塗る
+    </button>
+  </div>
+
+  <!-- REFINE TOOLS -->
+  <div class="sec">
+    <div class="sec-ttl"><div class="sec-dot" style="background:var(--green)"></div>手動調整ツール</div>
+    <div class="refine-row">
+      <button class="ref-btn" id="rb-add"   onclick="setTool('add')">🖌️ 追加</button>
+      <button class="ref-btn" id="rb-erase" onclick="setTool('erase')">🧹 削除</button>
+      <button class="ref-btn" id="rb-wand"  onclick="setTool('wand')">🪄 ワンド</button>
+    </div>
+    <div class="sl-row" id="brush-row" style="display:none">
+      <label>ブラシ径</label>
+      <input type="range" id="br-sz" min="3" max="80" value="16" oninput="updBrSz()">
+      <span id="br-sz-v">16px</span>
+    </div>
+    <div style="display:flex;gap:5px;margin-top:5px">
+      <button onclick="clearSel()" style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:6px;font-size:10px;color:var(--tx2);cursor:pointer;transition:all .14s">選択解除</button>
+      <button onclick="invertSel()" style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:6px;font-size:10px;color:var(--tx2);cursor:pointer;transition:all .14s">反転</button>
+    </div>
+  </div>
+
+  <!-- LAYERS -->
+  <div class="sec">
+    <div class="sec-ttl">
+      <div class="sec-dot" style="background:var(--purple)"></div>レイヤー
+      <span style="margin-left:auto;font-size:9px;color:var(--tx3)" id="lcount">0</span>
     </div>
     <div class="layer-list" id="layer-list">
-      <div class="layer-empty">写真をアップロードして<br>外壁をクリックすると<br>レイヤーが作成されます</div>
+      <div class="layer-empty">囲んで解析するとレイヤーが作成されます</div>
     </div>
-    <div style="display:flex;gap:5px;margin-top:8px">
-      <button onclick="addEmptyLayer()" style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:6px;font-size:10px;color:var(--tx2);cursor:pointer">＋ 空レイヤー追加</button>
-      <button onclick="mergeAllLayers()" style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:6px;font-size:10px;color:var(--tx2);cursor:pointer">⬇ 統合</button>
+    <div style="display:flex;gap:4px;margin-top:7px">
+      <button onclick="addEmptyLayer()" style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:5px;font-size:9px;color:var(--tx2);cursor:pointer">＋ 空追加</button>
+      <button onclick="mergeLayers()"   style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:5px;font-size:9px;color:var(--tx2);cursor:pointer">↓ 統合</button>
+      <button onclick="duplicateLayer()" style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:5px;font-size:9px;color:var(--tx2);cursor:pointer">⧉ 複製</button>
     </div>
   </div>
 
-  <!-- Color -->
-  <div class="rp-sec">
-    <div class="rp-title"><div class="rp-title-dot" style="background:var(--purple)"></div>カラー設定</div>
-
-    <div class="color-display">
-      <div class="color-swatch-big" id="color-swatch-big" style="background:#F0EDE0" onclick="document.getElementById('color-picker-inp').click()"></div>
-      <input type="color" class="color-picker-inp" id="color-picker-inp" value="#F0EDE0" oninput="onColorPicker(this.value)">
+  <!-- COLOR -->
+  <div class="sec">
+    <div class="sec-ttl"><div class="sec-dot" style="background:#E74C3C"></div>カラー設定</div>
+    <div class="color-disp">
+      <div class="color-big" id="color-big" style="background:#F0EDE0" onclick="document.getElementById('cpick').click()"></div>
+      <input type="color" id="cpick" class="color-pick" value="#F0EDE0" oninput="onCPick(this.value)">
       <div style="flex:1">
-        <input type="text" class="color-hex-inp" id="color-hex-inp" value="#F0EDE0" maxlength="7" placeholder="#RRGGBB" oninput="onHexInput(this.value)" style="width:100%;margin-bottom:4px">
-        <div id="color-name-disp" style="font-size:10px;color:var(--tx2);padding:0 2px">ミストホワイト</div>
+        <input type="text" class="hex-inp" id="hex-inp" value="#F0EDE0" maxlength="7" placeholder="#RRGGBB" oninput="onHexInp(this.value)">
+        <div id="color-name-txt">ミストホワイト</div>
       </div>
     </div>
 
-    <!-- Palette tabs -->
-    <div style="display:flex;gap:4px;margin-bottom:8px">
-      <button id="tab-wall" onclick="switchTab('wall')" style="flex:1;background:var(--acc);color:#fff;border:none;border-radius:var(--rs);padding:6px;font-size:10px;font-weight:700;cursor:pointer">外壁用 72色</button>
-      <button id="tab-roof" onclick="switchTab('roof')" style="flex:1;background:var(--panel2);color:var(--tx2);border:1px solid var(--border);border-radius:var(--rs);padding:6px;font-size:10px;font-weight:700;cursor:pointer">屋根用 46色</button>
-      <button id="tab-custom" onclick="switchTab('custom')" style="flex:1;background:var(--panel2);color:var(--tx2);border:1px solid var(--border);border-radius:var(--rs);padding:6px;font-size:10px;font-weight:700;cursor:pointer">カスタム</button>
+    <!-- TABS -->
+    <div class="pal-tabs">
+      <button class="pal-tab on" id="ptab-wall"   onclick="switchPalTab('wall')">外壁 72色</button>
+      <button class="pal-tab"    id="ptab-roof"   onclick="switchPalTab('roof')">屋根 46色</button>
+      <button class="pal-tab"    id="ptab-custom" onclick="switchPalTab('custom')">カスタム</button>
     </div>
 
     <!-- Wall palette -->
-    <div id="pal-wall" class="palette-scroll">
-      <div style="font-size:9px;color:var(--tx3);margin-bottom:5px;letter-spacing:.06em">■ DT シリーズ（外壁色見本 42色）</div>
-      <div class="palette-grid" id="palette-grid-wall-dt"></div>
-      <div style="font-size:9px;color:var(--tx3);margin:8px 0 5px;letter-spacing:.06em">■ SC シリーズ・外壁用（ハイフッ素 30色）</div>
-      <div class="palette-grid" id="palette-grid-wall-sc"></div>
+    <div id="pp-wall" class="pal-scroll">
+      <div class="pal-section-title">■ DT シリーズ（外壁色見本 42色）</div>
+      <div class="pal-grid" id="pg-wall-dt"></div>
+      <div class="pal-section-title">■ SC シリーズ・外壁用（ハイフッ素 30色）</div>
+      <div class="pal-grid" id="pg-wall-sc"></div>
     </div>
 
     <!-- Roof palette -->
-    <div id="pal-roof" class="palette-scroll" style="display:none">
-      <div style="font-size:9px;color:var(--tx3);margin-bottom:5px;letter-spacing:.06em">■ RC シリーズ（Roof color Best Selection 24色）</div>
-      <div class="palette-grid" id="palette-grid-roof-rc"></div>
-      <div style="font-size:9px;color:var(--tx3);margin:8px 0 5px;letter-spacing:.06em">■ SC シリーズ・屋根用（ハイフッ素 22色）</div>
-      <div class="palette-grid" id="palette-grid-roof-sc"></div>
+    <div id="pp-roof" class="pal-scroll" style="display:none">
+      <div class="pal-section-title">■ RC シリーズ（Roof color Best Selection 24色）</div>
+      <div class="pal-grid" id="pg-roof-rc"></div>
+      <div class="pal-section-title">■ SC シリーズ・屋根用（ハイフッ素 22色）</div>
+      <div class="pal-grid" id="pg-roof-sc"></div>
     </div>
 
-    <!-- Custom palette -->
-    <div id="pal-custom" style="display:none">
+    <!-- Custom -->
+    <div id="pp-custom" style="display:none">
       <div style="font-size:10px;color:var(--tx2);margin-bottom:6px">カラーピッカーまたはHEX値で自由に指定</div>
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
-        <input type="color" id="custom-picker" value="#F0EDE0" oninput="onColorPicker(this.value)" style="width:44px;height:36px;border:none;background:none;cursor:pointer;border-radius:4px">
-        <input type="text" id="custom-hex-inp" value="#F0EDE0" maxlength="7" placeholder="#RRGGBB" oninput="onHexInput(this.value)" style="flex:1;background:var(--panel2);border:1.5px solid var(--border);border-radius:var(--rs);padding:7px 10px;font-size:13px;font-family:monospace;color:var(--tx);outline:none">
+        <input type="color" id="cpick2" value="#F0EDE0" oninput="onCPick(this.value)" style="width:40px;height:34px;border:none;background:none;cursor:pointer;border-radius:4px">
+        <input type="text" class="hex-inp" id="hex-inp2" value="#F0EDE0" maxlength="7" placeholder="#RRGGBB" oninput="onHexInp(this.value)">
       </div>
       <div style="font-size:9px;color:var(--tx3);margin-bottom:5px">最近使った色</div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap" id="recent-colors"></div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap" id="recent-wrap"></div>
     </div>
 
-    <!-- Blend mode & opacity -->
+    <!-- Blend & Opacity -->
     <div class="blend-row" style="margin-top:8px">
       <label>合成モード</label>
-      <select class="blend-sel" id="blend-mode" onchange="updatePreview()">
+      <select class="blend-sel" id="blend-mode" onchange="onBlendChange()">
         <option value="multiply" selected>乗算（影・質感を保持）</option>
         <option value="color">カラー（自然な色替え）</option>
-        <option value="hue">色相</option>
         <option value="source-over">通常（べた塗り）</option>
         <option value="overlay">オーバーレイ</option>
         <option value="soft-light">ソフトライト</option>
       </select>
     </div>
-    <div class="opacity-row">
+    <div class="sl-row">
       <label>不透明度</label>
-      <input type="range" id="color-opa" min="10" max="100" value="80" oninput="updColorOpa()">
-      <span id="color-opa-v">80%</span>
+      <input type="range" id="c-opa" min="10" max="100" value="80" oninput="updOpa()">
+      <span id="c-opa-v">80%</span>
     </div>
 
-    <button class="apply-btn" id="apply-btn" onclick="applyColorToLayer()" disabled>
+    <button class="apply-btn" id="apply-btn" onclick="applyColor()" disabled>
       🎨 選択レイヤーに色を適用
     </button>
   </div>
 
-  <!-- Export -->
-  <div class="rp-sec">
-    <div class="rp-title"><div class="rp-title-dot" style="background:var(--green)"></div>書き出し・保存</div>
-    <div class="exp-row" style="margin-bottom:7px">
+  <!-- EXPORT -->
+  <div class="sec">
+    <div class="sec-ttl"><div class="sec-dot" style="background:var(--green)"></div>書き出し・保存</div>
+    <div class="exp-grid">
       <button class="exp-btn" onclick="exportPNG()">🖼️ PNG保存</button>
       <button class="exp-btn" onclick="exportComparison()">↔️ 比較画像</button>
-    </div>
-    <div class="exp-row" style="margin-bottom:7px">
       <button class="exp-btn" onclick="saveWork()">💾 作業保存</button>
       <button class="exp-btn" onclick="loadWork()">📂 作業再開</button>
-    </div>
-    <div class="exp-row">
-      <button class="exp-btn pdf" onclick="exportPDF()">📄 PDF提案書</button>
+      <button class="exp-btn full red" onclick="exportPDF()">📄 PDF提案書として書き出す</button>
     </div>
   </div>
 
-</div><!-- end right-panel -->
-</div><!-- end main -->
+</div><!-- end .rp -->
+</div><!-- end .main -->
 
-<!-- STATUS BAR -->
+<!-- STATUS -->
 <div class="status">
-  <div class="st-item"><div class="st-dot" id="st-dot"></div><span id="st-tool">待機中</span></div>
-  <div class="st-item">座標: <span id="st-xy">-</span></div>
-  <div class="st-item">画像: <span id="st-size">-</span></div>
-  <div class="st-item">レイヤー: <span id="st-layer">0</span></div>
-  <div class="st-item" style="margin-left:auto;color:rgba(255,255,255,.3);font-size:9px">Cmd/Ctrl+Z で元に戻す</div>
+  <div class="si"><div class="sdot" id="st-dot"></div><span id="st-tool">待機中</span></div>
+  <div class="si">座標: <span id="st-xy">-</span></div>
+  <div class="si">画像: <span id="st-size">-</span></div>
+  <div class="si">レイヤー: <span id="st-layers">0</span></div>
+  <div class="si" style="margin-left:auto;color:var(--tx3);font-size:9px">⌘Z 元に戻す ／ ⌘⇧Z やり直す</div>
 </div>
 
-</div><!-- end app -->
+</div><!-- end .app -->
 <div class="toast" id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
-/* =====================================================
-   CANVAS SETUP
-===================================================== */
-const wrap       = document.getElementById('canvas-wrap');
-const cPhoto     = document.getElementById('c-photo');
-const cMask      = document.getElementById('c-mask');
-const cInteract  = document.getElementById('c-interact');
-const ctxPhoto   = cPhoto.getContext('2d');
-const ctxMask    = cMask.getContext('2d');
-const ctxI       = cInteract.getContext('2d');
+/* ======================================================
+   CANVAS
+====================================================== */
+const cw       = document.getElementById('cw');
+const cPhoto   = document.getElementById('c-photo');
+const cOverlay = document.getElementById('c-overlay');
+const cDraw    = document.getElementById('c-draw');
+const ctxP = cPhoto.getContext('2d');
+const ctxO = cOverlay.getContext('2d');
+const ctxD = cDraw.getContext('2d');
 
 let photoImg = null;
-let IW = 0, IH = 0;   // image natural size
-let CW = 0, CH = 0;   // canvas display size
-let zoom = 1.0;
-let panX = 0, panY = 0;
+let IW=0, IH=0, CW=0, CH=0, zoom=1, panX=0, panY=0;
 
-/* =====================================================
-   STATE
-===================================================== */
-let curTool = 'wand';
-let tolerance = 40;
-let brushSz   = 18;
-let curColor  = '#F5F0DC';
-let colorOpa  = 0.80;
-let blendMode = 'multiply';
-
-// Layers: [{id, name, mask(Uint8Array IW*IH), color, opacity, blend, visible}]
-let layers = [];
-let selLayerIdx = -1;
-let layerCounter = 0;
-
-// Undo/Redo: store serialized layer states
-const undoStack = [], redoStack = [], MAX_UNDO = 30;
-
-// Lasso path
-let lassoPath = [];
-let lassoActive = false;
-
-// Pan/drag
-let isPanning = false, panStartX = 0, panStartY = 0;
-
-/* =====================================================
-   CANVAS RESIZE & PLACEMENT
-===================================================== */
-function placeCanvases() {
-  if (!photoImg) return;
-  const ww = wrap.clientWidth, wh = wrap.clientHeight;
-  const fitW = ww / IW, fitH = wh / IH;
-  const fit  = Math.min(fitW, fitH, 1.0);
-  if (zoom === 'init') zoom = fit * 0.95;
-
-  CW = Math.round(IW * zoom);
-  CH = Math.round(IH * zoom);
-
-  [cPhoto, cMask, cInteract].forEach(c => {
-    c.width  = CW; c.height = CH;
-    c.style.width  = CW + 'px'; c.style.height = CH + 'px';
-    c.style.left   = Math.round((ww - CW) / 2 + panX) + 'px';
-    c.style.top    = Math.round((wh - CH) / 2 + panY) + 'px';
+function placeCanvases(){
+  if(!photoImg) return;
+  const ww=cw.clientWidth, wh=cw.clientHeight;
+  if(zoom==='init') zoom=Math.min(ww/IW, wh/IH)*0.94;
+  CW=Math.round(IW*zoom); CH=Math.round(IH*zoom);
+  [cPhoto,cOverlay,cDraw].forEach(c=>{
+    c.width=CW; c.height=CH;
+    c.style.width=CW+'px'; c.style.height=CH+'px';
+    c.style.left=Math.round((ww-CW)/2+panX)+'px';
+    c.style.top =Math.round((wh-CH)/2+panY)+'px';
   });
-  document.getElementById('cursor-ring').style.left = '0px';
-  document.getElementById('zoom-label').textContent = Math.round(zoom * 100) + '%';
+  document.getElementById('zoom-lbl').textContent=Math.round(zoom*100)+'%';
   redrawAll();
 }
+window.addEventListener('resize',()=>{ if(photoImg) placeCanvases(); });
 
-function redrawAll() {
-  if (!photoImg) return;
-  // Photo layer
-  ctxPhoto.clearRect(0, 0, CW, CH);
-  ctxPhoto.drawImage(photoImg, 0, 0, CW, CH);
+/* ======================================================
+   STATE
+====================================================== */
+let curTool='rect', tolerance=35, brushSz=16;
+let curColor='#F0EDE0', curColorName='ミストホワイト', curOpa=0.80, curBlend='multiply';
+let curPalTab='wall';
 
-  // Composite all visible layers onto mask canvas
-  ctxMask.clearRect(0, 0, CW, CH);
-  for (const layer of layers) {
-    if (!layer.visible) continue;
-    renderLayer(layer);
-  }
+let layers=[], selIdx=-1, layerCnt=0;
+const undoStack=[], redoStack=[], MAX_UNDO=40;
 
-  // Interaction canvas (selection outline)
-  ctxI.clearRect(0, 0, CW, CH);
-  if (selLayerIdx >= 0 && layers[selLayerIdx]) {
-    drawSelectionOutline(layers[selLayerIdx].mask);
-  }
-}
+// Selection shape (polygon points in IMAGE coordinates)
+let selPoints=[];     // [{ix,iy}] — polygon in progress or completed rect
+let selFinished=false;// selection polygon is closed
+let selMask=null;     // Uint8Array IW*IH — pixels inside selection
 
-function renderLayer(layer) {
-  if (!layer.mask || !layer.color) return;
-  // Create offscreen canvas for this layer
-  const off = document.createElement('canvas');
-  off.width = CW; off.height = CH;
-  const offCtx = off.getContext('2d');
+// Lasso mode
+let lassoDrawing=false;
 
-  // Fill color onto masked pixels
-  let hex = layer.color.replace('#', '');
-  if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
-  const n = parseInt(hex, 16);
-  const fr=(n>>16)&255, fg=(n>>8)&255, fb=n&255;
+let isPan=false, panSX=0, panSY=0;
+let brushDown=false;
 
-  const imgData = offCtx.createImageData(CW, CH);
-  const d = imgData.data;
-
-  for (let cy = 0; cy < CH; cy++) {
-    for (let cx = 0; cx < CW; cx++) {
-      // Map canvas pixel → image pixel
-      const ix = Math.round(cx / zoom);
-      const iy = Math.round(cy / zoom);
-      if (ix >= IW || iy >= IH) continue;
-      const mi = iy * IW + ix;
-      if (!layer.mask[mi]) continue;
-      const pi = (cy * CW + cx) * 4;
-      d[pi]   = fr;
-      d[pi+1] = fg;
-      d[pi+2] = fb;
-      d[pi+3] = Math.round(layer.opacity * 255);
-    }
-  }
-  offCtx.putImageData(imgData, 0, 0);
-
-  // Composite onto mask canvas with blend mode
-  ctxMask.save();
-  ctxMask.globalCompositeOperation = layer.blend;
-  ctxMask.globalAlpha = 1;
-  ctxMask.drawImage(off, 0, 0);
-  ctxMask.restore();
-}
-
-/* =====================================================
-   LOAD PHOTO
-===================================================== */
-function loadPhoto(e) {
-  const f = e.target.files[0]; if (!f) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const img = new Image();
-    img.onload = () => {
-      photoImg = img;
-      IW = img.naturalWidth; IH = img.naturalHeight;
-      zoom = 'init';
-      panX = panY = 0;
-      layers = []; selLayerIdx = -1; layerCounter = 0;
-      undoStack.length = redoStack.length = 0;
-
-      document.getElementById('upload-overlay').style.display = 'none';
-      document.getElementById('zoom-ctrl').style.display = 'flex';
-      document.getElementById('st-size').textContent = `${IW}×${IH}px`;
-      document.getElementById('ai-ribbon') && (document.getElementById('ai-ribbon').style.display='none');
-
-      placeCanvases();
-      buildLayerList();
-      updateSummary();
-      toast('✅ 写真を読み込みました。外壁をクリックして選択してください', 'ok');
+/* ======================================================
+   PHOTO LOAD
+====================================================== */
+function loadPhoto(e){
+  const f=e.target.files[0]; if(!f) return;
+  e.target.value='';
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      photoImg=img; IW=img.naturalWidth; IH=img.naturalHeight;
+      zoom='init'; panX=panY=0;
+      layers=[]; selIdx=-1; layerCnt=0;
+      selPoints=[]; selFinished=false; selMask=null;
+      undoStack.length=redoStack.length=0;
+      document.getElementById('upload-ph').style.display='none';
+      document.getElementById('zoom-hud').style.display='flex';
+      document.getElementById('st-size').textContent=IW+'×'+IH+'px';
+      document.getElementById('st-dot').classList.add('on');
+      document.getElementById('analyze-btn').disabled=false;
+      document.getElementById('analyze-btn').style.opacity='1';
+      placeCanvases(); buildLayerList(); updateSummary();
+      setStepActive(1);
+      showGuide('⬜ 矩形 または ⬡ 多角形で塗りたい部位を囲んでください');
+      toast('✅ 写真を読み込みました。外壁など塗りたい部分を囲んでください','ok');
     };
-    img.src = ev.target.result;
-    e.target.value = '';
+    img.src=ev.target.result;
   };
-  reader.readAsDataURL(f);
-}
-window.addEventListener('resize', () => { if (photoImg) placeCanvases(); });
-
-/* =====================================================
-   COORDINATE UTILS
-===================================================== */
-function canvasRect() { return cInteract.getBoundingClientRect(); }
-function toCanvasXY(e) {
-  const r = canvasRect();
-  const src = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
-  return { cx: src.clientX - r.left, cy: src.clientY - r.top };
-}
-function toImageXY(cx, cy) {
-  return { ix: Math.max(0, Math.min(IW-1, Math.round(cx / zoom))),
-           iy: Math.max(0, Math.min(IH-1, Math.round(cy / zoom))) };
+  rd.readAsDataURL(f);
 }
 
-/* =====================================================
+/* ======================================================
+   REDRAW
+====================================================== */
+function getPhotoData(){
+  const tmp=document.createElement('canvas'); tmp.width=IW; tmp.height=IH;
+  tmp.getContext('2d').drawImage(photoImg,0,0,IW,IH);
+  return tmp.getContext('2d').getImageData(0,0,IW,IH).data;
+}
+let _photoDataCache=null;
+function photoData(){ if(!_photoDataCache) _photoDataCache=getPhotoData(); return _photoDataCache; }
+
+function redrawAll(){
+  if(!photoImg) return;
+  ctxP.clearRect(0,0,CW,CH);
+  ctxP.drawImage(photoImg,0,0,CW,CH);
+  ctxO.clearRect(0,0,CW,CH);
+  for(const l of layers){ if(l.visible) renderLayer(l); }
+  // Draw selection overlay
+  drawSelOverlay();
+  // Draw selection polygon
+  drawSelPolygon();
+}
+
+function renderLayer(layer){
+  if(!layer.mask||!layer.color) return;
+  const hex=layer.color.replace('#','');
+  const hn=hex.length===3?hex.split('').map(c=>c+c).join(''):hex;
+  const n=parseInt(hn,16);
+  const fr=(n>>16)&255,fg=(n>>8)&255,fb=n&255;
+
+  const imgD=ctxO.createImageData(CW,CH);
+  const d=imgD.data;
+  for(let cy=0;cy<CH;cy++){
+    for(let cx=0;cx<CW;cx++){
+      const ix=Math.min(IW-1,Math.round(cx/zoom));
+      const iy=Math.min(IH-1,Math.round(cy/zoom));
+      if(!layer.mask[iy*IW+ix]) continue;
+      const pi=(cy*CW+cx)*4;
+      d[pi]=fr; d[pi+1]=fg; d[pi+2]=fb;
+      d[pi+3]=Math.round(layer.opacity*255);
+    }
+  }
+  const off=document.createElement('canvas'); off.width=CW; off.height=CH;
+  off.getContext('2d').putImageData(imgD,0,0);
+  ctxO.save();
+  ctxO.globalCompositeOperation=layer.blend;
+  ctxO.drawImage(off,0,0);
+  ctxO.restore();
+}
+
+function drawSelOverlay(){
+  if(!selMask) return;
+  // Draw semi-transparent blue overlay on selected pixels
+  const imgD=ctxD.createImageData(CW,CH);
+  const d=imgD.data;
+  for(let cy=0;cy<CH;cy++){
+    for(let cx=0;cx<CW;cx++){
+      const ix=Math.min(IW-1,Math.round(cx/zoom));
+      const iy=Math.min(IH-1,Math.round(cy/zoom));
+      if(!selMask[iy*IW+ix]) continue;
+      const pi=(cy*CW+cx)*4;
+      d[pi]=79; d[pi+1]=142; d[pi+2]=247; d[pi+3]=80;
+    }
+  }
+  ctxD.clearRect(0,0,CW,CH);
+  ctxD.putImageData(imgD,0,0);
+  // Redraw selection polygon on top
+  drawSelPolygon();
+}
+
+function drawSelPolygon(){
+  if(!selPoints.length) return;
+  const pts=selPoints.map(p=>({x:p.ix*zoom, y:p.iy*zoom}));
+  ctxD.save();
+  ctxD.strokeStyle='#4F8EF7';
+  ctxD.lineWidth=1.5;
+  ctxD.setLineDash([5,3]);
+  ctxD.beginPath();
+  ctxD.moveTo(pts[0].x, pts[0].y);
+  for(let i=1;i<pts.length;i++) ctxD.lineTo(pts[i].x,pts[i].y);
+  if(selFinished) ctxD.closePath();
+  ctxD.stroke();
+  // Draw handles
+  ctxD.setLineDash([]);
+  ctxD.fillStyle='#fff';
+  pts.forEach(p=>{
+    ctxD.beginPath(); ctxD.arc(p.x,p.y,4,0,Math.PI*2); ctxD.fill();
+    ctxD.strokeStyle='#4F8EF7'; ctxD.lineWidth=1.5; ctxD.stroke();
+  });
+  ctxD.restore();
+}
+
+/* ======================================================
+   TOOLS
+====================================================== */
+const TOOL_TIPS={
+  rect:'⬜ クリックしてドラッグ、または4隅をクリックして矩形を描きます',
+  lasso:'⬡ クリックで頂点を追加、最初の点をクリックで閉じます',
+  wand:'🪄 クリックした点の色に近いピクセルを自動選択します',
+  add:'🖌️ ブラシでなぞると選択範囲を追加します',
+  erase:'🧹 ブラシでなぞると選択範囲を削除します',
+  move:'✋ ドラッグして画像を移動します',
+};
+
+function setTool(t){
+  curTool=t;
+  ['rect','lasso','wand','add','erase','move'].forEach(id=>{
+    const el=document.getElementById('tb-'+id);
+    if(el) el.classList.toggle('on',id===t);
+  });
+  ['add','erase','wand'].forEach(id=>{
+    const el=document.getElementById('rb-'+id);
+    if(el) el.classList.toggle('on',id===t);
+  });
+  document.getElementById('brush-row').style.display=(t==='add'||t==='erase')?'flex':'none';
+  cDraw.style.cursor=t==='move'?'grab':t==='add'?'none':t==='erase'?'none':'crosshair';
+  document.getElementById('st-tool').textContent={rect:'矩形選択',lasso:'多角形選択',wand:'マジックワンド',add:'ブラシ追加',erase:'消しゴム',move:'移動'}[t]||t;
+  if(TOOL_TIPS[t]) showGuide(TOOL_TIPS[t]);
+}
+
+function updTol(){ tolerance=+document.getElementById('tol').value; document.getElementById('tol-v').textContent=tolerance; }
+function updBrSz(){ brushSz=+document.getElementById('br-sz').value; document.getElementById('br-sz-v').textContent=brushSz+'px'; }
+
+/* ======================================================
+   COORDINATE HELPERS
+====================================================== */
+function toImgXY(cx,cy){
+  return {ix:Math.max(0,Math.min(IW-1,Math.round(cx/zoom))), iy:Math.max(0,Math.min(IH-1,Math.round(cy/zoom)))};
+}
+function getCanvasXY(e){
+  const r=cDraw.getBoundingClientRect();
+  const src=e.touches?e.touches[0]:(e.changedTouches?e.changedTouches[0]:e);
+  return {cx:src.clientX-r.left, cy:src.clientY-r.top};
+}
+
+/* ======================================================
    POINTER EVENTS
-===================================================== */
-cInteract.addEventListener('pointerdown', onPointerDown);
-cInteract.addEventListener('pointermove', onPointerMove);
-cInteract.addEventListener('pointerup',   onPointerUp);
-cInteract.addEventListener('pointerleave', onPointerUp);
-cInteract.addEventListener('touchstart',  e => e.preventDefault(), {passive:false});
-cInteract.addEventListener('touchmove',   e => e.preventDefault(), {passive:false});
+====================================================== */
+let rectStart=null;
 
-let drawing = false;
+cDraw.addEventListener('pointerdown', e=>{
+  if(!photoImg) return; e.preventDefault();
+  const {cx,cy}=getCanvasXY(e);
+  const {ix,iy}=toImgXY(cx,cy);
 
-function onPointerDown(e) {
-  if (!photoImg) return;
-  e.preventDefault();
-  const {cx,cy} = toCanvasXY(e);
-  const {ix,iy} = toImageXY(cx,cy);
-
-  if (e.altKey || e.button === 1) {
-    // Pan mode
-    isPanning = true; panStartX = e.clientX - panX; panStartY = e.clientY - panY; return;
+  // Pan
+  if(curTool==='move'||e.altKey||e.button===1){
+    isPan=true; panSX=e.clientX-panX; panSY=e.clientY-panY;
+    cDraw.style.cursor='grabbing'; return;
   }
 
-  if (curTool === 'wand') {
-    saveUndo();
-    doMagicWand(ix, iy);
-  } else if (curTool === 'brush') {
-    saveUndo(); drawing = true;
-    paintAt(cx, cy);
-  } else if (curTool === 'eraser') {
-    saveUndo(); drawing = true;
-    eraseAt(cx, cy);
-  } else if (curTool === 'lasso') {
-    if (!lassoActive) {
-      lassoActive = true; lassoPath = [{x:cx,y:cy}];
-    }
-  }
-}
-
-function onPointerMove(e) {
-  if (!photoImg) return;
-  const {cx,cy} = toCanvasXY(e);
-  const {ix,iy} = toImageXY(cx,cy);
-  document.getElementById('st-xy').textContent = `${ix}, ${iy}`;
-
-  // Cursor ring
-  updateCursorRing(cx, cy);
-
-  if (isPanning) {
-    panX = e.clientX - panStartX; panY = e.clientY - panStartY;
-    placeCanvases(); return;
-  }
-  if (drawing && curTool === 'brush') paintAt(cx, cy);
-  if (drawing && curTool === 'eraser') eraseAt(cx, cy);
-  if (lassoActive && curTool === 'lasso') {
-    lassoPath.push({x:cx,y:cy});
-    drawLassoPreview();
-  }
-}
-
-function onPointerUp(e) {
-  isPanning = false;
-  if (drawing) { drawing = false; redrawAll(); updateLayerList(); }
-  if (lassoActive && curTool === 'lasso' && lassoPath.length > 3) {
-    saveUndo();
-    finalizeLasso();
-    lassoActive = false; lassoPath = [];
-    ctxI.clearRect(0, 0, CW, CH);
-  }
-}
-
-// Wheel zoom
-wrap.addEventListener('wheel', e => {
-  e.preventDefault();
-  const delta = e.deltaY > 0 ? 0.9 : 1.1;
-  zoom = Math.max(0.1, Math.min(8, zoom * delta));
-  placeCanvases();
-}, {passive:false});
-
-/* =====================================================
-   MAGIC WAND — flood fill by color similarity
-===================================================== */
-function doMagicWand(startX, startY) {
-  if (!photoImg) return;
-  // Get photo pixel data
-  const tmp = document.createElement('canvas');
-  tmp.width = IW; tmp.height = IH;
-  tmp.getContext('2d').drawImage(photoImg, 0, 0, IW, IH);
-  const baseData = tmp.getContext('2d').getImageData(0, 0, IW, IH).data;
-
-  const i0 = (startY * IW + startX) * 4;
-  const tr = baseData[i0], tg = baseData[i0+1], tb = baseData[i0+2];
-
-  const mask = new Uint8Array(IW * IH);
-  const visited = new Uint8Array(IW * IH);
-  const queue = [startY * IW + startX];
-  visited[startY * IW + startX] = 1;
-
-  let painted = 0;
-  while (queue.length && painted < IW * IH) {
-    const pos = queue.pop();
-    const px  = pos % IW, py = Math.floor(pos / IW);
-    const pi  = pos * 4;
-    const dr  = baseData[pi]   - tr;
-    const dg  = baseData[pi+1] - tg;
-    const db  = baseData[pi+2] - tb;
-    if (Math.sqrt(dr*dr + dg*dg + db*db) > tolerance) continue;
-    mask[pos] = 1; painted++;
-    const ns = [
-      px>0    ? pos-1 : -1,
-      px<IW-1 ? pos+1 : -1,
-      py>0    ? pos-IW : -1,
-      py<IH-1 ? pos+IW : -1,
-    ];
-    for (const n of ns) {
-      if (n >= 0 && !visited[n]) { visited[n] = 1; queue.push(n); }
-    }
-  }
-
-  if (painted < 10) { toast('選択エリアが小さすぎます。許容値を上げてみてください'); return; }
-
-  // Create new layer or add to selected layer if shift
-  const layerName = `レイヤー ${++layerCounter}`;
-  const layer = {
-    id: Date.now(), name: layerName,
-    mask, color: curColor,
-    opacity: colorOpa, blend: blendMode,
-    visible: true,
-    pixelCount: painted
-  };
-  layers.push(layer);
-  selLayerIdx = layers.length - 1;
-
-  buildLayerList();
-  redrawAll();
-  updateSummary();
-  document.getElementById('apply-btn').disabled = false;
-  toast(`✅ ${painted.toLocaleString()}px を選択しました`, 'ok');
-}
-
-/* =====================================================
-   BRUSH / ERASER on selected layer
-===================================================== */
-let lastBrushX = -1, lastBrushY = -1;
-
-function paintAt(cx, cy) {
-  if (selLayerIdx < 0) {
-    // No layer selected — create one
-    const mask = new Uint8Array(IW * IH);
-    const layer = { id: Date.now(), name: `レイヤー ${++layerCounter}`, mask, color: curColor, opacity: colorOpa, blend: blendMode, visible: true, pixelCount: 0 };
-    layers.push(layer); selLayerIdx = layers.length - 1;
-    buildLayerList();
-  }
-  const layer = layers[selLayerIdx];
-  const r = Math.round(brushSz / zoom / 2);
-  const {ix,iy} = toImageXY(cx,cy);
-  fillCircle(layer.mask, ix, iy, r, 1);
-  lastBrushX = cx; lastBrushY = cy;
-
-  // Quick preview
-  ctxMask.clearRect(0, 0, CW, CH);
-  for (const l of layers) if (l.visible) renderLayer(l);
-}
-
-function eraseAt(cx, cy) {
-  if (selLayerIdx < 0) return;
-  const layer = layers[selLayerIdx];
-  const r = Math.round(brushSz / zoom / 2);
-  const {ix,iy} = toImageXY(cx,cy);
-  fillCircle(layer.mask, ix, iy, r, 0);
-  ctxMask.clearRect(0, 0, CW, CH);
-  for (const l of layers) if (l.visible) renderLayer(l);
-}
-
-function fillCircle(mask, cx, cy, r, val) {
-  for (let dy = -r; dy <= r; dy++) {
-    for (let dx = -r; dx <= r; dx++) {
-      if (dx*dx + dy*dy <= r*r) {
-        const x = cx+dx, y = cy+dy;
-        if (x>=0 && x<IW && y>=0 && y<IH) mask[y*IW+x] = val;
+  if(curTool==='rect'){
+    // Start rect
+    selPoints=[{ix,iy}]; selFinished=false; selMask=null;
+    rectStart={ix,iy};
+    ctxD.clearRect(0,0,CW,CH);
+  } else if(curTool==='lasso'){
+    if(!lassoDrawing){
+      // First point
+      if(!selPoints.length){ selPoints=[{ix,iy}]; lassoDrawing=true; selFinished=false; selMask=null; }
+      else {
+        // Check if clicking near first point to close
+        const fp=selPoints[0];
+        const dist=Math.hypot((ix-fp.ix)*zoom,(iy-fp.iy)*zoom);
+        if(dist<12 && selPoints.length>2){
+          finalizeLasso(); return;
+        }
+        selPoints.push({ix,iy});
       }
     }
+    redrawAll();
+  } else if(curTool==='wand'){
+    saveUndo();
+    doWand(ix,iy);
+  } else if(curTool==='add'||curTool==='erase'){
+    saveUndo(); brushDown=true;
+    doBrush(ix,iy);
   }
+});
+
+cDraw.addEventListener('pointermove', e=>{
+  if(!photoImg) return;
+  const {cx,cy}=getCanvasXY(e);
+  const {ix,iy}=toImgXY(cx,cy);
+  document.getElementById('st-xy').textContent=ix+', '+iy;
+  updateCursor(cx,cy);
+
+  if(isPan){ panX=e.clientX-panSX; panY=e.clientY-panSY; placeCanvases(); return; }
+
+  if(curTool==='rect' && rectStart && e.buttons){
+    // Draw rect preview
+    const rx0=Math.min(rectStart.ix,ix), ry0=Math.min(rectStart.iy,iy);
+    const rx1=Math.max(rectStart.ix,ix), ry1=Math.max(rectStart.iy,iy);
+    selPoints=[{ix:rx0,iy:ry0},{ix:rx1,iy:ry0},{ix:rx1,iy:ry1},{ix:rx0,iy:ry1}];
+    redrawAll();
+  } else if(curTool==='lasso' && lassoDrawing && selPoints.length){
+    // Preview last segment
+    const pts=selPoints.map(p=>({x:p.ix*zoom,y:p.iy*zoom}));
+    ctxD.clearRect(0,0,CW,CH);
+    drawSelPolygon();
+    ctxD.save(); ctxD.strokeStyle='rgba(79,142,247,.5)'; ctxD.lineWidth=1; ctxD.setLineDash([4,3]);
+    ctxD.beginPath(); ctxD.moveTo(pts[pts.length-1].x,pts[pts.length-1].y);
+    ctxD.lineTo(cx,cy); ctxD.stroke(); ctxD.restore();
+  } else if((curTool==='add'||curTool==='erase') && brushDown){
+    doBrush(ix,iy);
+  }
+});
+
+cDraw.addEventListener('pointerup', e=>{
+  if(isPan){ isPan=false; cDraw.style.cursor=curTool==='move'?'grab':'crosshair'; return; }
+  if(curTool==='rect' && rectStart){
+    const {cx,cy}=getCanvasXY(e);
+    const {ix,iy}=toImgXY(cx,cy);
+    const rx0=Math.min(rectStart.ix,ix), ry0=Math.min(rectStart.iy,iy);
+    const rx1=Math.max(rectStart.ix,ix), ry1=Math.max(rectStart.iy,iy);
+    if(Math.abs(rx1-rx0)>4 && Math.abs(ry1-ry0)>4){
+      selPoints=[{ix:rx0,iy:ry0},{ix:rx1,iy:ry0},{ix:rx1,iy:ry1},{ix:rx0,iy:ry1}];
+      selFinished=true;
+      buildSelMask();
+      setStepActive(2);
+      showGuide('✨「囲んだ範囲を解析して塗る」ボタンを押してください');
+    }
+    rectStart=null;
+  }
+  if(brushDown){ brushDown=false; redrawAll(); updateLayerList(); }
+});
+
+cDraw.addEventListener('dblclick', e=>{
+  if(curTool==='lasso' && lassoDrawing && selPoints.length>2){ finalizeLasso(); }
+});
+
+cDraw.addEventListener('touchstart',  e=>e.preventDefault(),{passive:false});
+cDraw.addEventListener('touchmove',   e=>e.preventDefault(),{passive:false});
+cDraw.addEventListener('pointerleave',()=>{ brushDown=false; });
+
+// Wheel zoom
+cw.addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoom=Math.max(0.08,Math.min(10,zoom*(e.deltaY>0?0.9:1.11)));
+  placeCanvases();
+},{passive:false});
+
+/* ======================================================
+   LASSO FINALIZE
+====================================================== */
+function finalizeLasso(){
+  if(selPoints.length<3){ toast('3点以上必要です'); return; }
+  lassoDrawing=false; selFinished=true;
+  buildSelMask();
+  setStepActive(2);
+  showGuide('✨「囲んだ範囲を解析して塗る」ボタンを押してください');
 }
 
-/* =====================================================
-   LASSO
-===================================================== */
-function drawLassoPreview() {
-  ctxI.clearRect(0, 0, CW, CH);
-  if (lassoPath.length < 2) return;
-  ctxI.save();
-  ctxI.strokeStyle = '#4F8EF7';
-  ctxI.lineWidth = 1.5;
-  ctxI.setLineDash([5, 3]);
-  ctxI.beginPath();
-  ctxI.moveTo(lassoPath[0].x, lassoPath[0].y);
-  for (const p of lassoPath) ctxI.lineTo(p.x, p.y);
-  ctxI.stroke();
-  ctxI.restore();
-}
-
-function finalizeLasso() {
-  if (!photoImg || lassoPath.length < 3) return;
-  const mask = new Uint8Array(IW * IH);
-
-  // Create lasso mask using ray casting
-  for (let iy = 0; iy < IH; iy++) {
-    for (let ix = 0; ix < IW; ix++) {
-      const cx = ix * zoom, cy = iy * zoom;
-      if (pointInPolygon(cx, cy, lassoPath)) mask[iy*IW+ix] = 1;
+/* ======================================================
+   BUILD SELECTION MASK FROM POLYGON
+====================================================== */
+function buildSelMask(){
+  const m=new Uint8Array(IW*IH);
+  for(let iy=0;iy<IH;iy++){
+    for(let ix=0;ix<IW;ix++){
+      if(pointInPoly(ix,iy,selPoints)) m[iy*IW+ix]=1;
     }
   }
-
-  const painted = mask.reduce((a,b) => a+b, 0);
-  if (painted < 10) { toast('選択エリアが小さすぎます'); return; }
-
-  const layer = { id: Date.now(), name: `レイヤー ${++layerCounter}`, mask, color: curColor, opacity: colorOpa, blend: blendMode, visible: true, pixelCount: painted };
-  layers.push(layer);
-  selLayerIdx = layers.length - 1;
-  buildLayerList(); redrawAll(); updateSummary();
-  document.getElementById('apply-btn').disabled = false;
-  toast(`✅ なげなわで ${painted.toLocaleString()}px を選択`, 'ok');
+  selMask=m;
+  redrawAll();
 }
 
-function pointInPolygon(x, y, poly) {
-  let inside = false;
-  for (let i=0, j=poly.length-1; i<poly.length; j=i++) {
-    const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
-    if (((yi>y) !== (yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi)) inside = !inside;
+function pointInPoly(x,y,poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i].ix,yi=poly[i].iy,xj=poly[j].ix,yj=poly[j].iy;
+    if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) inside=!inside;
   }
   return inside;
 }
 
-/* =====================================================
-   SELECTION OUTLINE
-===================================================== */
-function drawSelectionOutline(mask) {
-  if (!mask) return;
-  ctxI.save();
-  ctxI.strokeStyle = 'rgba(79,142,247,0.9)';
-  ctxI.lineWidth = 1;
-  ctxI.setLineDash([4, 3]);
-  // Draw border pixels
-  for (let iy = 1; iy < IH-1; iy++) {
-    for (let ix = 1; ix < IW-1; ix++) {
-      if (!mask[iy*IW+ix]) continue;
-      const isEdge = !mask[(iy-1)*IW+ix] || !mask[(iy+1)*IW+ix] || !mask[iy*IW+ix-1] || !mask[iy*IW+ix+1];
-      if (isEdge) {
-        const cx = Math.round(ix*zoom), cy = Math.round(iy*zoom);
-        ctxI.strokeRect(cx, cy, 1, 1);
-      }
+/* ======================================================
+   ANALYZE SELECTION  ← 核心機能
+   囲んだ範囲の中を色で自動解析して塗る部分を決定
+====================================================== */
+function analyzeSelection(){
+  if(!selMask){ toast('先に範囲を囲んでください','err'); return; }
+  saveUndo();
+
+  const pd=photoData();
+  const newMask=new Uint8Array(IW*IH);
+
+  // 1. 選択範囲内のピクセルを収集
+  const selPixels=[];
+  for(let i=0;i<IW*IH;i++){
+    if(selMask[i]){
+      const pi=i*4;
+      selPixels.push({i, r:pd[pi], g:pd[pi+1], b:pd[pi+2]});
     }
   }
-  ctxI.restore();
-}
+  if(!selPixels.length){ toast('選択範囲にピクセルがありません','err'); return; }
 
-/* =====================================================
-   CURSOR RING
-===================================================== */
-function updateCursorRing(cx, cy) {
-  const ring = document.getElementById('cursor-ring');
-  if (curTool === 'brush' || curTool === 'eraser') {
-    const sz = brushSz;
-    ring.style.display = 'block';
-    ring.style.width   = sz + 'px';
-    ring.style.height  = sz + 'px';
-    ring.style.left    = (cInteract.offsetLeft + cx) + 'px';
-    ring.style.top     = (cInteract.offsetTop  + cy) + 'px';
-    ring.style.borderColor = curTool === 'eraser' ? 'rgba(231,76,60,.8)' : 'rgba(255,255,255,.8)';
-  } else {
-    ring.style.display = 'none';
+  // 2. 選択範囲内で最多色（外壁の主色）をクラスタリング
+  // 　 簡易k-means: まず中央付近のサンプルを基準色とする
+  const cx=Math.round(selPoints.reduce((s,p)=>s+p.ix,0)/selPoints.length);
+  const cy2=Math.round(selPoints.reduce((s,p)=>s+p.iy,0)/selPoints.length);
+  const ci=(cy2*IW+cx)*4;
+  const baseR=pd[ci], baseG=pd[ci+1], baseB=pd[ci+2];
+
+  // 3. 選択範囲内の各ピクセルが「主色に近い」かどうかを判定
+  //    → 近ければ塗装対象、遠ければ除外（窓・配管など）
+  let painted=0;
+  for(const px of selPixels){
+    const dr=px.r-baseR, dg=px.g-baseG, db=px.b-baseB;
+    const dist=Math.sqrt(dr*dr+dg*dg+db*db);
+    if(dist<=tolerance){
+      newMask[px.i]=1; painted++;
+    }
   }
-}
 
-/* =====================================================
-   APPLY COLOR TO LAYER
-===================================================== */
-function applyColorToLayer() {
-  if (selLayerIdx < 0) { toast('先にレイヤーを選択してください', 'err'); return; }
-  saveUndo();
-  const layer = layers[selLayerIdx];
-  layer.color   = curColor;
-  layer.opacity = colorOpa;
-  layer.blend   = blendMode;
+  // 4. レイヤーを生成
+  const layerName='レイヤー '+(++layerCnt);
+  const layer={
+    id:Date.now(), name:layerName,
+    mask:newMask, color:curColor,
+    opacity:curOpa, blend:curBlend,
+    visible:true, pixelCount:painted,
+    selPoints:[...selPoints]  // 元の選択範囲を保存
+  };
+  layers.push(layer);
+  selIdx=layers.length-1;
+
+  // 5. 選択を維持しつつレイヤー表示
+  selMask=newMask;
   redrawAll();
   buildLayerList();
   updateSummary();
-  toast(`✅ ${layer.name} に ${curColor} を適用しました`, 'ok');
+  document.getElementById('apply-btn').disabled=false;
+  setStepActive(3);
+  showGuide('🖌️ ブラシで追加 / 🧹 消しゴムで調整してから「色を適用」してください');
+  toast(`✅ ${painted.toLocaleString()}px を解析・塗り分けました。ブラシで調整できます`,'ok');
 }
 
-/* =====================================================
-   LAYER MANAGEMENT
-===================================================== */
-function buildLayerList() {
-  const list = document.getElementById('layer-list');
-  document.getElementById('layer-count').textContent = layers.length + ' レイヤー';
-  document.getElementById('st-layer').textContent = layers.length;
-
-  if (!layers.length) {
-    list.innerHTML = '<div class="layer-empty">写真をアップロードして<br>外壁をクリックすると<br>レイヤーが作成されます</div>';
-    return;
+/* ======================================================
+   MAGIC WAND
+====================================================== */
+function doWand(startX, startY){
+  if(!photoImg) return;
+  const pd=photoData();
+  const i0=(startY*IW+startX)*4;
+  const tr=pd[i0],tg=pd[i0+1],tb=pd[i0+2];
+  const mask=new Uint8Array(IW*IH);
+  const vis=new Uint8Array(IW*IH);
+  const q=[startY*IW+startX]; vis[startY*IW+startX]=1;
+  let cnt=0;
+  while(q.length){
+    const pos=q.pop();
+    const px2=pos%IW, py2=Math.floor(pos/IW), pi=pos*4;
+    const dr=pd[pi]-tr,dg=pd[pi+1]-tg,db=pd[pi+2]-tb;
+    if(Math.sqrt(dr*dr+dg*dg+db*db)>tolerance) continue;
+    mask[pos]=1; cnt++;
+    const ns=[px2>0?pos-1:-1,px2<IW-1?pos+1:-1,py2>0?pos-IW:-1,py2<IH-1?pos+IW:-1];
+    for(const n of ns) if(n>=0&&!vis[n]){vis[n]=1;q.push(n);}
   }
-  list.innerHTML = '';
-  // Reverse order (top layer first)
-  [...layers].reverse().forEach((layer, ri) => {
-    const i = layers.length - 1 - ri;
-    const el = document.createElement('div');
-    el.className = 'layer-item' + (i === selLayerIdx ? ' sel' : '');
-    el.id = 'li-' + layer.id;
+  if(cnt<8){ toast('選択エリアが小さすぎます。許容値を上げてください'); return; }
 
-    // Thumbnail
-    const thumb = document.createElement('canvas');
-    thumb.width = 28; thumb.height = 28;
-    const tctx = thumb.getContext('2d');
-    if (photoImg) {
-      tctx.drawImage(photoImg, 0, 0, 28, 28);
-      // Quick color overlay
-      tctx.globalCompositeOperation = 'multiply';
-      tctx.fillStyle = layer.color;
-      tctx.globalAlpha = layer.opacity;
-      tctx.fillRect(0, 0, 28, 28);
+  const layerName='ワンド '+(++layerCnt);
+  const layer={id:Date.now(),name:layerName,mask,color:curColor,opacity:curOpa,blend:curBlend,visible:true,pixelCount:cnt,selPoints:[]};
+  layers.push(layer); selIdx=layers.length-1;
+  selMask=mask;
+  redrawAll(); buildLayerList(); updateSummary();
+  document.getElementById('apply-btn').disabled=false;
+  setStepActive(3);
+  toast(`✅ ${cnt.toLocaleString()}px を選択しました`,'ok');
+}
+
+/* ======================================================
+   BRUSH ADD / ERASE
+====================================================== */
+function doBrush(ix,iy){
+  if(selIdx<0){
+    // No active layer — create empty
+    const mask=new Uint8Array(IW*IH);
+    layers.push({id:Date.now(),name:'レイヤー '+(++layerCnt),mask,color:curColor,opacity:curOpa,blend:curBlend,visible:true,pixelCount:0,selPoints:[]});
+    selIdx=layers.length-1;
+    buildLayerList();
+    document.getElementById('apply-btn').disabled=false;
+  }
+  const layer=layers[selIdx];
+  const r=Math.max(1,Math.round(brushSz/zoom/2));
+  fillCircle(layer.mask,ix,iy,r, curTool==='add'?1:0);
+  // Also update selMask for visual feedback
+  if(!selMask) selMask=new Uint8Array(IW*IH);
+  fillCircle(selMask,ix,iy,r, curTool==='add'?1:0);
+  // Quick re-render overlay
+  ctxO.clearRect(0,0,CW,CH);
+  for(const l of layers) if(l.visible) renderLayer(l);
+  drawSelOverlay();
+}
+
+function fillCircle(mask,cx2,cy2,r,val){
+  for(let dy=-r;dy<=r;dy++){
+    for(let dx=-r;dx<=r;dx++){
+      if(dx*dx+dy*dy<=r*r){
+        const x=cx2+dx, y=cy2+dy;
+        if(x>=0&&x<IW&&y>=0&&y<IH) mask[y*IW+x]=val;
+      }
     }
-
-    const thumbWrap = document.createElement('div');
-    thumbWrap.className = 'layer-thumb';
-    thumbWrap.appendChild(thumb);
-
-    const px = (layer.mask ? layer.mask.reduce((a,b)=>a+b,0) : 0).toLocaleString();
-    el.innerHTML = `
-      <div class="layer-thumb"><div style="width:28px;height:28px;border-radius:4px;background:${layer.color};border:1px solid rgba(255,255,255,.1)"></div></div>
-      <div class="layer-info">
-        <div class="layer-name">${layer.name}</div>
-        <div class="layer-px">${px}px ・ ${layer.blend}</div>
-      </div>
-      <div class="layer-actions">
-        <button class="la-btn" onclick="toggleLayerVis(${i});event.stopPropagation()" title="${layer.visible?'非表示':'表示'}">${layer.visible?'👁️':'🙈'}</button>
-        <button class="la-btn del" onclick="deleteLayer(${i});event.stopPropagation()" title="削除">✕</button>
-      </div>`;
-    el.onclick = () => selectLayer(i);
-    list.appendChild(el);
-  });
+  }
 }
 
-function selectLayer(i) {
-  selLayerIdx = i;
-  buildLayerList();
-  redrawAll();
-  document.getElementById('apply-btn').disabled = false;
-  toast(`「${layers[i].name}」を選択`);
+/* ======================================================
+   CURSOR RING
+====================================================== */
+function updateCursor(cx,cy){
+  const ring=document.getElementById('cursor-ring');
+  if(curTool==='add'||curTool==='erase'){
+    ring.style.display='block';
+    ring.style.width=brushSz+'px'; ring.style.height=brushSz+'px';
+    ring.style.left=(cDraw.offsetLeft+cx)+'px';
+    ring.style.top=(cDraw.offsetTop+cy)+'px';
+    ring.style.borderColor=curTool==='erase'?'rgba(231,76,60,.8)':'rgba(255,255,255,.8)';
+  } else { ring.style.display='none'; }
 }
 
-function toggleLayerVis(i) {
-  layers[i].visible = !layers[i].visible;
-  buildLayerList(); redrawAll();
+/* ======================================================
+   CLEAR / INVERT SELECTION
+====================================================== */
+function clearSel(){
+  selPoints=[]; selFinished=false; selMask=null; selIdx=-1;
+  ctxD.clearRect(0,0,CW,CH);
+  redrawAll(); setStepActive(1);
+  showGuide('⬜ 矩形 または ⬡ 多角形で塗りたい部位を囲んでください');
+  document.getElementById('apply-btn').disabled=!layers.length;
 }
-
-function deleteLayer(i) {
+function invertSel(){
+  if(!selMask){ toast('選択範囲がありません'); return; }
   saveUndo();
-  layers.splice(i, 1);
-  if (selLayerIdx >= layers.length) selLayerIdx = layers.length - 1;
-  buildLayerList(); redrawAll(); updateSummary();
-  if (!layers.length) document.getElementById('apply-btn').disabled = true;
-}
-
-function addEmptyLayer() {
-  if (!photoImg) { toast('先に写真をアップロードしてください', 'err'); return; }
-  const mask = new Uint8Array(IW * IH);
-  layers.push({ id: Date.now(), name: `レイヤー ${++layerCounter}`, mask, color: curColor, opacity: colorOpa, blend: blendMode, visible: true, pixelCount: 0 });
-  selLayerIdx = layers.length - 1;
-  buildLayerList(); updateSummary();
-  document.getElementById('apply-btn').disabled = false;
-  toast('空レイヤーを追加しました');
-}
-
-function mergeAllLayers() {
-  if (layers.length < 2) { toast('2つ以上のレイヤーが必要です'); return; }
-  saveUndo();
-  const merged = new Uint8Array(IW * IH);
-  for (const l of layers) if (l.mask) for (let i=0;i<merged.length;i++) if (l.mask[i]) merged[i]=1;
-  layers = [{ id: Date.now(), name: '統合レイヤー', mask: merged, color: curColor, opacity: colorOpa, blend: blendMode, visible: true }];
-  selLayerIdx = 0;
-  buildLayerList(); redrawAll(); updateSummary();
-  toast('すべてのレイヤーを統合しました', 'ok');
-}
-
-function clearSelection() {
-  selLayerIdx = -1;
-  buildLayerList(); redrawAll();
-  document.getElementById('apply-btn').disabled = true;
-}
-
-function invertSelection() {
-  if (selLayerIdx < 0) { toast('レイヤーを選択してください'); return; }
-  saveUndo();
-  const m = layers[selLayerIdx].mask;
-  for (let i=0;i<m.length;i++) m[i] = m[i] ? 0 : 1;
+  for(let i=0;i<selMask.length;i++) selMask[i]=selMask[i]?0:1;
+  if(selIdx>=0&&layers[selIdx]) layers[selIdx].mask=selMask;
   redrawAll(); buildLayerList();
 }
 
-/* =====================================================
-   COLOR
-===================================================== */
-/* =====================================================
-   COLOR DATA — 実際の塗料色見本
-===================================================== */
-
-// ===== 外壁用 DT シリーズ 42色 =====
-const WALL_DT = [
-  {code:'DT-N87',  name:'ミストホワイト',      hex:'#F0EDE0'},
-  {code:'DT-N80',  name:'シルバースター',       hex:'#D8D8D8'},
-  {code:'DT-N70',  name:'マウンティングレー',   hex:'#B8B8B8'},
-  {code:'DT-1585A',name:'チェリーホワイト',     hex:'#EDE8E0'},
-  {code:'DT-1780A',name:'ホワイトパープル',     hex:'#E8E4EC'},
-  {code:'DT-1575A',name:'アッシュロース',       hex:'#E8DDD8'},
-  {code:'DT-1990A',name:'ウォームホワイト',     hex:'#F0EDE4'},
-  {code:'DT-1985B',name:'ペールアイボリー',     hex:'#F0EAD8'},
-  {code:'DT-1980B',name:'エクルベージュ',       hex:'#E8D8C0'},
-  {code:'DT-2290C',name:'ホットミルク',         hex:'#F0E8D0'},
-  {code:'DT-2285C',name:'ライトアイボリー',     hex:'#EEE8D0'},
-  {code:'DT-2280A',name:'モーニングブラウ',     hex:'#D8CCAC'},
-  {code:'DT-2580A',name:'スノーホワイト',       hex:'#F4F4F0'},
-  {code:'DT-2585B',name:'エーデルワイス',       hex:'#EAE8DC'},
-  {code:'DT-2980B',name:'ペールグリーン',       hex:'#DDE8D8'},
-  {code:'DT-5580A',name:'アイスブルー',         hex:'#C8D8E0'},
-  {code:'DT-6570A',name:'アッシュグレー',       hex:'#A0A8B0'},
-  {code:'DT-6550D',name:'アクアマリン',         hex:'#5A8090'},
-  {code:'DT-2175D',name:'サンドベージュ',       hex:'#C8B898'},
-  {code:'DT-2275F',name:'ブロンズアイビー',     hex:'#9A8870'},
-  {code:'DT-2160D',name:'カフェオレブラウン',   hex:'#A08060'},
-  {code:'DT-7560B',name:'クラウドグレー',       hex:'#9098A8'},
-  {code:'DT-N50',  name:'ソリッドグレー',       hex:'#787878'},
-  {code:'DT-1530B',name:'デミグラスブラウン',   hex:'#302820'},
-  {code:'DT-1770B',name:'ラベンダーグレー',     hex:'#A8A0B0'},
-  {code:'DT-1560D',name:'チャームブラウン',     hex:'#A09080'},
-  {code:'DT-1750D',name:'アッシュブラウン',     hex:'#807060'},
-  {code:'DT-1975D',name:'ミルクティー',         hex:'#C8B8A0'},
-  {code:'DT-1960C',name:'クリーミーショコラ',   hex:'#B09880'},
-  {code:'DT-1950A',name:'ナイトフォグ',         hex:'#686870'},
-  {code:'DT-2270B',name:'シルバーブラウン',     hex:'#A09888'},
-  {code:'DT-2260B',name:'マカロンモカ',         hex:'#B8A890'},
-  {code:'DT-1940B',name:'チャコールグラファイト',hex:'#484848'},
-  {code:'DT-2770D',name:'ウグイス',             hex:'#909870'},
-  {code:'DT-2170F',name:'クラウディキャメル',   hex:'#C0A878'},
-  {code:'DT-2250D',name:'ココアブラウン',       hex:'#806050'},
-  {code:'DT-1780D',name:'ベビーピンク',         hex:'#F0D8D0'},
-  {code:'DT-2170H',name:'シャインマスタード',   hex:'#C8A840'},
-  {code:'DT-1560F',name:'ラセットブラウン',     hex:'#986050'},
-  {code:'DT-1760F',name:'オータムリーフ',       hex:'#A07040'},
-  {code:'DT-1975L',name:'パンプキンイエロー',   hex:'#D8A040'},
-  {code:'DT-1570H',name:'フラミンゴフェザー',   hex:'#D89080'},
-];
-
-// ===== 外壁用 SC シリーズ 30色（ハイフッ素上部） =====
-const WALL_SC = [
-  {code:'SC-01', name:'SC-01', hex:'#F5F0E0'},
-  {code:'SC-02', name:'SC-02', hex:'#F0E8D0'},
-  {code:'SC-03', name:'SC-03', hex:'#EDE8DC'},
-  {code:'SC-04', name:'SC-04', hex:'#ECE8E0'},
-  {code:'SC-05', name:'SC-05', hex:'#F0EEE8'},
-  {code:'SC-06', name:'SC-06', hex:'#E8E0D0'},
-  {code:'SC-07', name:'SC-07', hex:'#E0D8C0'},
-  {code:'SC-08', name:'SC-08', hex:'#E8D8C8'},
-  {code:'SC-09', name:'SC-09', hex:'#E8E4DC'},
-  {code:'SC-10', name:'SC-10', hex:'#DCDCD8'},
-  {code:'SC-11', name:'SC-11', hex:'#D8C8B0'},
-  {code:'SC-12', name:'SC-12', hex:'#D4C0A0'},
-  {code:'SC-13', name:'SC-13', hex:'#E0C8B8'},
-  {code:'SC-14', name:'SC-14', hex:'#E0E0D8'},
-  {code:'SC-15', name:'SC-15', hex:'#D0D0CC'},
-  {code:'SC-16', name:'SC-16', hex:'#E0D890'},
-  {code:'SC-17', name:'SC-17', hex:'#C8A878'},
-  {code:'SC-18', name:'SC-18', hex:'#B8A888'},
-  {code:'SC-19', name:'SC-19', hex:'#A8A898'},
-  {code:'SC-20', name:'SC-20', hex:'#A0A0A0'},
-  {code:'SC-21', name:'SC-21', hex:'#C8B098'},
-  {code:'SC-22', name:'SC-22', hex:'#B09878'},
-  {code:'SC-23', name:'SC-23', hex:'#A89080'},
-  {code:'SC-24', name:'SC-24', hex:'#909090'},
-  {code:'SC-25', name:'SC-25', hex:'#808888'},
-  {code:'SC-26', name:'SC-26', hex:'#C8D0B8'},
-  {code:'SC-27', name:'SC-27', hex:'#A0A890'},
-  {code:'SC-28', name:'SC-28', hex:'#C8D8D8'},
-  {code:'SC-29', name:'SC-29', hex:'#B8C8C8'},
-  {code:'SC-30', name:'SC-30', hex:'#C8D8E8'},
-];
-
-// ===== 屋根用 RC シリーズ 24色（Roof color Best Selection 24） =====
-const ROOF_RC = [
-  {code:'RC-140', name:'コーラルオレンジ',  hex:'#D84820'},
-  {code:'RC-111', name:'レディシュオレンジ', hex:'#A03820'},
-  {code:'RC-101', name:'ブリックレッド',    hex:'#882020'},
-  {code:'RC-112', name:'マルーン',          hex:'#501018'},
-  {code:'RC-141', name:'キャメルイエロー',  hex:'#C08020'},
-  {code:'RC-117', name:'アースブラウン',    hex:'#806040'},
-  {code:'RC-118', name:'ブラウン',          hex:'#704030'},
-  {code:'RC-113', name:'チョコレート',      hex:'#401818'},
-  {code:'RC-102', name:'チェスナットブラウン',hex:'#602818'},
-  {code:'RC-108', name:'アイビーブラウン',  hex:'#503828'},
-  {code:'RC-119', name:'チャコールグレー',  hex:'#686868'},
-  {code:'RC-103', name:'ココナッツブラウン',hex:'#281008'},
-  {code:'RC-106', name:'グレー',            hex:'#808080'},
-  {code:'RC-107', name:'ミッドナイトグレー',hex:'#404858'},
-  {code:'RC-120', name:'ナチュラルグレー',  hex:'#585858'},
-  {code:'RC-121', name:'セピアブラウン',    hex:'#201818'},
-  {code:'RC-104', name:'グリーン',          hex:'#284830'},
-  {code:'RC-142', name:'フォレストグリーン',hex:'#204028'},
-  {code:'RC-114', name:'ディープグリーン',  hex:'#183020'},
-  {code:'RC-109', name:'ダークグリーン',    hex:'#182818'},
-  {code:'RC-105', name:'ディープブルー',    hex:'#1A2850'},
-  {code:'RC-115', name:'サックスブルー',    hex:'#1A3868'},
-  {code:'RC-116', name:'ウルトラマリーン',  hex:'#1A2860'},
-  {code:'RC-110', name:'スレートブラック',  hex:'#181C20'},
-];
-
-// ===== 屋根用 SC シリーズ 22色（ハイフッ素下部） =====
-const ROOF_SC = [
-  {code:'SC-33', name:'ノースオレンジ',  hex:'#C85020'},
-  {code:'SC-34', name:'ノースブラウン',  hex:'#603020'},
-  {code:'SC-35', name:'オリーブグリーン',hex:'#2A5030'},
-  {code:'SC-36', name:'ナイスブルー',    hex:'#1A3870'},
-  {code:'SC-37', name:'ニューグレー',    hex:'#707878'},
-  {code:'SC-38', name:'ワインレッド',    hex:'#702020'},
-  {code:'SC-39', name:'ニューワイン',    hex:'#501820'},
-  {code:'SC-40', name:'ダークグリーン',  hex:'#1A3820'},
-  {code:'SC-41', name:'セリアンブルー',  hex:'#1A4060'},
-  {code:'SC-42', name:'ナチュラルグレー',hex:'#686868'},
-  {code:'SC-43', name:'ローヤルレッド',  hex:'#882020'},
-  {code:'SC-44', name:'コーヒーブラウン',hex:'#402010'},
-  {code:'SC-45', name:'ディープグリーン',hex:'#1A3018'},
-  {code:'SC-46', name:'マリンブルー',    hex:'#102848'},
-  {code:'SC-47', name:'ダークグレー',    hex:'#404040'},
-  {code:'SC-48', name:'チャコールグレー',hex:'#303030'},
-  {code:'SC-49', name:'ブラック',        hex:'#181818'},
-  {code:'SC-50', name:'スレートブラック',hex:'#202428'},
-  {code:'SC-51', name:'ナスコン',        hex:'#181830'},
-  {code:'SC-52', name:'スカイブルー',    hex:'#1870C8'},
-  {code:'SC-31', name:'シェルライト',    hex:'#F0EDE8'},
-  {code:'SC-32', name:'ライトクリーム',  hex:'#F0E8D0'},
-];
-
-// 最近使った色
-let recentColors = JSON.parse(localStorage.getItem('recentColors') || '[]');
-let curTab = 'wall';
-
-/* =====================================================
-   PALETTE BUILD
-===================================================== */
-function buildPalette() {
-  buildPaletteGrid('palette-grid-wall-dt', WALL_DT);
-  buildPaletteGrid('palette-grid-wall-sc', WALL_SC);
-  buildPaletteGrid('palette-grid-roof-rc', ROOF_RC);
-  buildPaletteGrid('palette-grid-roof-sc', ROOF_SC);
-  buildRecentColors();
+/* ======================================================
+   APPLY COLOR TO LAYER
+====================================================== */
+function applyColor(){
+  if(selIdx<0){ toast('先にレイヤーを選択してください','err'); return; }
+  saveUndo();
+  const layer=layers[selIdx];
+  layer.color=curColor; layer.opacity=curOpa; layer.blend=curBlend;
+  redrawAll(); buildLayerList(); updateSummary();
+  setStepActive(4);
+  showGuide('✅ 色を適用しました。別の部位も同様に囲んで塗れます');
+  toast(`✅ ${layer.name} に ${curColorName}(${curColor}) を適用しました`,'ok');
 }
 
-function buildPaletteGrid(gridId, colors) {
-  const grid = document.getElementById(gridId);
-  if (!grid) return;
-  grid.innerHTML = '';
-  colors.forEach(c => {
-    const sw = document.createElement('div');
-    sw.className = 'pal-sw';
-    sw.style.background = c.hex;
-    sw.setAttribute('data-name', c.name);
-    sw.setAttribute('data-code', c.code);
-    sw.title = c.hex;
-    sw.onclick = () => setColor(c.hex, c.name, c.code);
-    grid.appendChild(sw);
-  });
-}
-
-function buildRecentColors() {
-  const wrap = document.getElementById('recent-colors');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-  recentColors.slice(0,12).forEach(c => {
-    const sw = document.createElement('div');
-    sw.style.cssText = `width:24px;height:24px;border-radius:4px;background:${c.hex};cursor:pointer;border:2px solid transparent;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .14s`;
-    sw.title = c.name || c.hex;
-    sw.onclick = () => setColor(c.hex, c.name, '');
-    sw.onmouseover = () => sw.style.transform='scale(1.15)';
-    sw.onmouseout  = () => sw.style.transform='scale(1)';
-    wrap.appendChild(sw);
-  });
-}
-
-function switchTab(tab) {
-  curTab = tab;
-  ['wall','roof','custom'].forEach(t => {
-    document.getElementById('pal-'+t).style.display = t===tab ? 'block' : 'none';
-    const btn = document.getElementById('tab-'+t);
-    if (t===tab) { btn.style.background='var(--acc)'; btn.style.color='#fff'; btn.style.border='none'; }
-    else { btn.style.background='var(--panel2)'; btn.style.color='var(--tx2)'; btn.style.border='1px solid var(--border)'; }
-  });
-}
-
-function setColor(hex, name, code) {
-  curColor = hex;
-  document.getElementById('color-swatch-big').style.background = hex;
-  document.getElementById('color-hex-inp').value = hex.toUpperCase();
-  document.getElementById('color-picker-inp').value = hex;
-  if (document.getElementById('custom-picker')) document.getElementById('custom-picker').value = hex;
-  if (document.getElementById('custom-hex-inp')) document.getElementById('custom-hex-inp').value = hex.toUpperCase();
-
-  // 色名表示
-  const nameDisp = document.getElementById('color-name-disp');
-  if (nameDisp) nameDisp.textContent = (code ? code + '　' : '') + (name || hex.toUpperCase());
-
-  // パレットの選択状態
-  document.querySelectorAll('.pal-sw').forEach(s => s.classList.toggle('sel', s.title === hex));
-
-  // 最近使った色に追加
-  if (name) {
-    recentColors = recentColors.filter(c => c.hex !== hex);
-    recentColors.unshift({ hex, name, code });
-    if (recentColors.length > 12) recentColors.pop();
-    localStorage.setItem('recentColors', JSON.stringify(recentColors));
-    buildRecentColors();
+/* ======================================================
+   LAYER MANAGEMENT
+====================================================== */
+function buildLayerList(){
+  const list=document.getElementById('layer-list');
+  document.getElementById('lcount').textContent=layers.length+'個';
+  document.getElementById('st-layers').textContent=layers.length;
+  if(!layers.length){
+    list.innerHTML='<div class="layer-empty">囲んで解析するとレイヤーが作成されます</div>';
+    return;
   }
+  list.innerHTML='';
+  [...layers].reverse().forEach((l,ri)=>{
+    const i=layers.length-1-ri;
+    const el=document.createElement('div');
+    el.className='litem'+(i===selIdx?' sel':'');
+    const px=l.mask?l.mask.reduce((a,b)=>a+b,0).toLocaleString():'0';
+    el.innerHTML=`
+      <div class="litem-color" style="background:${l.color}"></div>
+      <div class="litem-info">
+        <div class="litem-name">${l.name}</div>
+        <div class="litem-sub">${px}px ・ ${l.blend}</div>
+      </div>
+      <div class="litem-act">
+        <button class="lact" onclick="toggleVis(${i});event.stopPropagation()" title="${l.visible?'非表示':'表示'}">${l.visible?'👁':'🙈'}</button>
+        <button class="lact del" onclick="deleteLayer(${i});event.stopPropagation()">✕</button>
+      </div>`;
+    el.onclick=()=>selectLayer(i);
+    list.appendChild(el);
+  });
 }
+function selectLayer(i){
+  selIdx=i;
+  selMask=layers[i].mask;
+  buildLayerList(); redrawAll();
+  document.getElementById('apply-btn').disabled=false;
+  toast(`「${layers[i].name}」を選択`);
+}
+function toggleVis(i){ layers[i].visible=!layers[i].visible; buildLayerList(); redrawAll(); }
+function deleteLayer(i){
+  saveUndo(); layers.splice(i,1);
+  if(selIdx>=layers.length) selIdx=layers.length-1;
+  if(selIdx>=0) selMask=layers[selIdx].mask; else selMask=null;
+  buildLayerList(); redrawAll(); updateSummary();
+  if(!layers.length) document.getElementById('apply-btn').disabled=true;
+}
+function addEmptyLayer(){
+  if(!photoImg){ toast('写真をアップロードしてください','err'); return; }
+  const mask=new Uint8Array(IW*IH);
+  layers.push({id:Date.now(),name:'空レイヤー '+(++layerCnt),mask,color:curColor,opacity:curOpa,blend:curBlend,visible:true,pixelCount:0,selPoints:[]});
+  selIdx=layers.length-1; selMask=mask;
+  buildLayerList(); document.getElementById('apply-btn').disabled=false;
+}
+function mergeLayers(){
+  if(layers.length<2){ toast('2つ以上必要です'); return; }
+  saveUndo();
+  const m=new Uint8Array(IW*IH);
+  for(const l of layers) if(l.mask) for(let i=0;i<m.length;i++) if(l.mask[i]) m[i]=1;
+  layers=[{id:Date.now(),name:'統合レイヤー',mask:m,color:curColor,opacity:curOpa,blend:curBlend,visible:true,selPoints:[]}];
+  selIdx=0; selMask=m; buildLayerList(); redrawAll();
+}
+function duplicateLayer(){
+  if(selIdx<0){ toast('レイヤーを選択してください'); return; }
+  const l=layers[selIdx];
+  const copy={...l,id:Date.now(),name:l.name+' コピー',mask:l.mask?new Uint8Array(l.mask):null,selPoints:[...(l.selPoints||[])]};
+  layers.splice(selIdx+1,0,copy); selIdx=selIdx+1;
+  buildLayerList(); redrawAll();
+}
+function updateSummary(){ buildLayerList(); }
 
-function onColorPicker(v) { setColor(v, 'カスタム', ''); updatePreview(); }
-function onHexInput(v) {
-  if (/^#[0-9A-Fa-f]{6}$/.test(v)) { setColor(v, 'カスタム', ''); updatePreview(); }
-}
-function updColorOpa() {
-  colorOpa = +document.getElementById('color-opa').value / 100;
-  document.getElementById('color-opa-v').textContent = Math.round(colorOpa*100) + '%';
-  updatePreview();
-}
-function updatePreview() {
-  blendMode = document.getElementById('blend-mode').value;
-  if (selLayerIdx >= 0 && layers[selLayerIdx]) {
-    layers[selLayerIdx].color   = curColor;
-    layers[selLayerIdx].opacity = colorOpa;
-    layers[selLayerIdx].blend   = blendMode;
-    redrawAll();
-  }
-}
-
-/* =====================================================
-   TOOL MANAGEMENT
-===================================================== */
-const TOOL_HINTS = {
-  wand:   '🪄 <strong>マジックワンド</strong>：外壁などをクリックすると類似色を自動選択してレイヤーを作成します',
-  brush:  '🖌️ <strong>ブラシ</strong>：選択レイヤーの上をなぞって範囲を手動で追加します',
-  eraser: '🧹 <strong>消しゴム</strong>：選択レイヤーの範囲をなぞって削除します',
-  lasso:  '⭕ <strong>なげなわ</strong>：ドラッグで囲んだ範囲をレイヤーとして追加します',
-};
-function setTool(t) {
-  curTool = t;
-  ['wand','brush','eraser','lasso'].forEach(id => document.getElementById('tb-'+id).classList.toggle('active', id===t));
-  document.getElementById('tool-hint').innerHTML = TOOL_HINTS[t];
-  document.getElementById('brush-size-row').style.display = (t==='brush'||t==='eraser') ? 'flex' : 'none';
-  document.getElementById('st-tool').textContent = {wand:'マジックワンド',brush:'ブラシ',eraser:'消しゴム',lasso:'なげなわ'}[t];
-  document.getElementById('st-dot').classList.toggle('active', !!photoImg);
-  cInteract.style.cursor = t==='brush'||t==='eraser' ? 'none' : (t==='lasso' ? 'crosshair' : 'cell');
-}
-function updTol() { tolerance = +document.getElementById('tolerance').value; document.getElementById('tol-v').textContent = tolerance; }
-function updBrSz() { brushSz = +document.getElementById('brush-sz').value; document.getElementById('br-sz-v').textContent = brushSz+'px'; }
-
-/* =====================================================
-   ZOOM / PAN
-===================================================== */
-function zoomIn()    { zoom = Math.min(8, zoom*1.25); placeCanvases(); }
-function zoomOut()   { zoom = Math.max(0.1, zoom/1.25); placeCanvases(); }
-function resetZoom() { zoom='init'; panX=panY=0; placeCanvases(); }
-
-/* =====================================================
+/* ======================================================
    UNDO / REDO
-===================================================== */
-function serializeLayers() {
-  return JSON.stringify(layers.map(l => ({
-    ...l, mask: l.mask ? Array.from(l.mask) : null
-  })));
-}
-function deserializeLayers(s) {
-  return JSON.parse(s).map(l => ({
-    ...l, mask: l.mask ? new Uint8Array(l.mask) : null
-  }));
-}
-function saveUndo() {
-  undoStack.push(serializeLayers());
-  if (undoStack.length > MAX_UNDO) undoStack.shift();
-  redoStack.length = 0;
-}
-function undoAct() {
-  if (!undoStack.length) { toast('これ以上戻せません'); return; }
-  redoStack.push(serializeLayers());
-  layers = deserializeLayers(undoStack.pop());
-  selLayerIdx = Math.min(selLayerIdx, layers.length-1);
+====================================================== */
+function ser(){ return JSON.stringify(layers.map(l=>({...l,mask:l.mask?Array.from(l.mask):null}))); }
+function des(s){ return JSON.parse(s).map(l=>({...l,mask:l.mask?new Uint8Array(l.mask):null})); }
+function saveUndo(){ undoStack.push(ser()); if(undoStack.length>MAX_UNDO) undoStack.shift(); redoStack.length=0; }
+function undoAct(){
+  if(!undoStack.length){ toast('これ以上戻せません'); return; }
+  redoStack.push(ser()); layers=des(undoStack.pop());
+  selIdx=Math.min(selIdx,layers.length-1);
+  if(selIdx>=0) selMask=layers[selIdx].mask; else selMask=null;
   buildLayerList(); redrawAll(); updateSummary();
 }
-function redoAct() {
-  if (!redoStack.length) { toast('これ以上やり直せません'); return; }
-  undoStack.push(serializeLayers());
-  layers = deserializeLayers(redoStack.pop());
+function redoAct(){
+  if(!redoStack.length){ toast('これ以上やり直せません'); return; }
+  undoStack.push(ser()); layers=des(redoStack.pop());
   buildLayerList(); redrawAll(); updateSummary();
 }
-document.addEventListener('keydown', e => {
-  const c = e.ctrlKey||e.metaKey;
-  if (c&&e.key==='z'){e.preventDefault();undoAct();}
-  if (c&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redoAct();}
-  if (e.key==='Escape'){clearSelection();}
+document.addEventListener('keydown',e=>{
+  const c=e.ctrlKey||e.metaKey;
+  if(c&&e.key==='z'){e.preventDefault();undoAct();}
+  if(c&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redoAct();}
+  if(e.key==='Escape') clearSel();
 });
 
-/* =====================================================
-   SUMMARY
-===================================================== */
-function updateSummary() { buildLayerList(); }
+/* ======================================================
+   ZOOM / PAN
+====================================================== */
+function zoomIn(){  zoom=Math.min(10,zoom*1.25); placeCanvases(); }
+function zoomOut(){ zoom=Math.max(0.08,zoom/1.25); placeCanvases(); }
+function resetView(){ zoom='init'; panX=panY=0; placeCanvases(); }
 
-/* =====================================================
+/* ======================================================
+   STEP GUIDE
+====================================================== */
+function setStepActive(n){
+  [1,2,3,4].forEach(i=>{
+    const el=document.getElementById('si-'+i);
+    if(el){ el.classList.toggle('active',i===n); el.classList.toggle('done',i<n); }
+  });
+}
+function showGuide(msg){
+  const el=document.getElementById('step-guide');
+  el.textContent=msg; el.style.display='block';
+  clearTimeout(el._t); el._t=setTimeout(()=>el.style.display='none',4000);
+}
+
+/* ======================================================
+   COLOR
+====================================================== */
+const WALL_DT=[
+  {code:'DT-N87',  name:'ミストホワイト',       hex:'#F0EDE0'},
+  {code:'DT-N80',  name:'シルバースター',        hex:'#D8D8D8'},
+  {code:'DT-N70',  name:'マウンティングレー',    hex:'#B8B8B8'},
+  {code:'DT-1585A',name:'チェリーホワイト',      hex:'#EDE8E0'},
+  {code:'DT-1780A',name:'ホワイトパープル',      hex:'#E8E4EC'},
+  {code:'DT-1575A',name:'アッシュロース',        hex:'#E8DDD8'},
+  {code:'DT-1990A',name:'ウォームホワイト',      hex:'#F0EDE4'},
+  {code:'DT-1985B',name:'ペールアイボリー',      hex:'#F0EAD8'},
+  {code:'DT-1980B',name:'エクルベージュ',        hex:'#E8D8C0'},
+  {code:'DT-2290C',name:'ホットミルク',          hex:'#F0E8D0'},
+  {code:'DT-2285C',name:'ライトアイボリー',      hex:'#EEE8D0'},
+  {code:'DT-2280A',name:'モーニングブラウ',      hex:'#D8CCAC'},
+  {code:'DT-2580A',name:'スノーホワイト',        hex:'#F4F4F0'},
+  {code:'DT-2585B',name:'エーデルワイス',        hex:'#EAE8DC'},
+  {code:'DT-2980B',name:'ペールグリーン',        hex:'#DDE8D8'},
+  {code:'DT-5580A',name:'アイスブルー',          hex:'#C8D8E0'},
+  {code:'DT-6570A',name:'アッシュグレー',        hex:'#A0A8B0'},
+  {code:'DT-6550D',name:'アクアマリン',          hex:'#5A8090'},
+  {code:'DT-2175D',name:'サンドベージュ',        hex:'#C8B898'},
+  {code:'DT-2275F',name:'ブロンズアイビー',      hex:'#9A8870'},
+  {code:'DT-2160D',name:'カフェオレブラウン',    hex:'#A08060'},
+  {code:'DT-7560B',name:'クラウドグレー',        hex:'#9098A8'},
+  {code:'DT-N50',  name:'ソリッドグレー',        hex:'#787878'},
+  {code:'DT-1530B',name:'デミグラスブラウン',    hex:'#302820'},
+  {code:'DT-1770B',name:'ラベンダーグレー',      hex:'#A8A0B0'},
+  {code:'DT-1560D',name:'チャームブラウン',      hex:'#A09080'},
+  {code:'DT-1750D',name:'アッシュブラウン',      hex:'#807060'},
+  {code:'DT-1975D',name:'ミルクティー',          hex:'#C8B8A0'},
+  {code:'DT-1960C',name:'クリーミーショコラ',    hex:'#B09880'},
+  {code:'DT-1950A',name:'ナイトフォグ',          hex:'#686870'},
+  {code:'DT-2270B',name:'シルバーブラウン',      hex:'#A09888'},
+  {code:'DT-2260B',name:'マカロンモカ',          hex:'#B8A890'},
+  {code:'DT-1940B',name:'チャコールグラファイト',hex:'#484848'},
+  {code:'DT-2770D',name:'ウグイス',              hex:'#909870'},
+  {code:'DT-2170F',name:'クラウディキャメル',    hex:'#C0A878'},
+  {code:'DT-2250D',name:'ココアブラウン',        hex:'#806050'},
+  {code:'DT-1780D',name:'ベビーピンク',          hex:'#F0D8D0'},
+  {code:'DT-2170H',name:'シャインマスタード',    hex:'#C8A840'},
+  {code:'DT-1560F',name:'ラセットブラウン',      hex:'#986050'},
+  {code:'DT-1760F',name:'オータムリーフ',        hex:'#A07040'},
+  {code:'DT-1975L',name:'パンプキンイエロー',    hex:'#D8A040'},
+  {code:'DT-1570H',name:'フラミンゴフェザー',    hex:'#D89080'},
+];
+const WALL_SC=[
+  {code:'SC-01',name:'SC-01',hex:'#F5F0E0'},{code:'SC-02',name:'SC-02',hex:'#F0E8D0'},
+  {code:'SC-03',name:'SC-03',hex:'#EDE8DC'},{code:'SC-04',name:'SC-04',hex:'#ECE8E0'},
+  {code:'SC-05',name:'SC-05',hex:'#F0EEE8'},{code:'SC-06',name:'SC-06',hex:'#E8E0D0'},
+  {code:'SC-07',name:'SC-07',hex:'#E0D8C0'},{code:'SC-08',name:'SC-08',hex:'#E8D8C8'},
+  {code:'SC-09',name:'SC-09',hex:'#E8E4DC'},{code:'SC-10',name:'SC-10',hex:'#DCDCD8'},
+  {code:'SC-11',name:'SC-11',hex:'#D8C8B0'},{code:'SC-12',name:'SC-12',hex:'#D4C0A0'},
+  {code:'SC-13',name:'SC-13',hex:'#E0C8B8'},{code:'SC-14',name:'SC-14',hex:'#E0E0D8'},
+  {code:'SC-15',name:'SC-15',hex:'#D0D0CC'},{code:'SC-16',name:'SC-16',hex:'#E0D890'},
+  {code:'SC-17',name:'SC-17',hex:'#C8A878'},{code:'SC-18',name:'SC-18',hex:'#B8A888'},
+  {code:'SC-19',name:'SC-19',hex:'#A8A898'},{code:'SC-20',name:'SC-20',hex:'#A0A0A0'},
+  {code:'SC-21',name:'SC-21',hex:'#C8B098'},{code:'SC-22',name:'SC-22',hex:'#B09878'},
+  {code:'SC-23',name:'SC-23',hex:'#A89080'},{code:'SC-24',name:'SC-24',hex:'#909090'},
+  {code:'SC-25',name:'SC-25',hex:'#808888'},{code:'SC-26',name:'SC-26',hex:'#C8D0B8'},
+  {code:'SC-27',name:'SC-27',hex:'#A0A890'},{code:'SC-28',name:'SC-28',hex:'#C8D8D8'},
+  {code:'SC-29',name:'SC-29',hex:'#B8C8C8'},{code:'SC-30',name:'SC-30',hex:'#C8D8E8'},
+];
+const ROOF_RC=[
+  {code:'RC-140',name:'コーラルオレンジ',  hex:'#D84820'},
+  {code:'RC-111',name:'レディシュオレンジ',hex:'#A03820'},
+  {code:'RC-101',name:'ブリックレッド',    hex:'#882020'},
+  {code:'RC-112',name:'マルーン',          hex:'#501018'},
+  {code:'RC-141',name:'キャメルイエロー',  hex:'#C08020'},
+  {code:'RC-117',name:'アースブラウン',    hex:'#806040'},
+  {code:'RC-118',name:'ブラウン',          hex:'#704030'},
+  {code:'RC-113',name:'チョコレート',      hex:'#401818'},
+  {code:'RC-102',name:'チェスナットBR',    hex:'#602818'},
+  {code:'RC-108',name:'アイビーブラウン',  hex:'#503828'},
+  {code:'RC-119',name:'チャコールグレー',  hex:'#686868'},
+  {code:'RC-103',name:'ココナッツBR',      hex:'#281008'},
+  {code:'RC-106',name:'グレー',            hex:'#808080'},
+  {code:'RC-107',name:'ミッドナイトGY',    hex:'#404858'},
+  {code:'RC-120',name:'ナチュラルグレー',  hex:'#585858'},
+  {code:'RC-121',name:'セピアブラウン',    hex:'#201818'},
+  {code:'RC-104',name:'グリーン',          hex:'#284830'},
+  {code:'RC-142',name:'フォレストGN',      hex:'#204028'},
+  {code:'RC-114',name:'ディープグリーン',  hex:'#183020'},
+  {code:'RC-109',name:'ダークグリーン',    hex:'#182818'},
+  {code:'RC-105',name:'ディープブルー',    hex:'#1A2850'},
+  {code:'RC-115',name:'サックスブルー',    hex:'#1A3868'},
+  {code:'RC-116',name:'ウルトラマリーン',  hex:'#1A2860'},
+  {code:'RC-110',name:'スレートブラック',  hex:'#181C20'},
+];
+const ROOF_SC=[
+  {code:'SC-33',name:'ノースオレンジ',  hex:'#C85020'},{code:'SC-34',name:'ノースブラウン',  hex:'#603020'},
+  {code:'SC-35',name:'オリーブGN',      hex:'#2A5030'},{code:'SC-36',name:'ナイスブルー',    hex:'#1A3870'},
+  {code:'SC-37',name:'ニューグレー',    hex:'#707878'},{code:'SC-38',name:'ワインレッド',    hex:'#702020'},
+  {code:'SC-39',name:'ニューワイン',    hex:'#501820'},{code:'SC-40',name:'ダークGN',        hex:'#1A3820'},
+  {code:'SC-41',name:'セリアンBL',      hex:'#1A4060'},{code:'SC-42',name:'ナチュラルGY',    hex:'#686868'},
+  {code:'SC-43',name:'ローヤルレッド',  hex:'#882020'},{code:'SC-44',name:'コーヒーBR',      hex:'#402010'},
+  {code:'SC-45',name:'ディープGN',      hex:'#1A3018'},{code:'SC-46',name:'マリンBL',        hex:'#102848'},
+  {code:'SC-47',name:'ダークグレー',    hex:'#404040'},{code:'SC-48',name:'チャコールGY',    hex:'#303030'},
+  {code:'SC-49',name:'ブラック',        hex:'#181818'},{code:'SC-50',name:'スレートBK',      hex:'#202428'},
+  {code:'SC-51',name:'ナスコン',        hex:'#181830'},{code:'SC-52',name:'スカイブルー',    hex:'#1870C8'},
+  {code:'SC-31',name:'シェルライト',    hex:'#F0EDE8'},{code:'SC-32',name:'ライトクリーム',  hex:'#F0E8D0'},
+];
+
+let recentColors=JSON.parse(localStorage.getItem('rclr')||'[]');
+
+function buildPalettes(){
+  buildPG('pg-wall-dt', WALL_DT);
+  buildPG('pg-wall-sc', WALL_SC);
+  buildPG('pg-roof-rc', ROOF_RC);
+  buildPG('pg-roof-sc', ROOF_SC);
+  buildRecent();
+}
+function buildPG(id, arr){
+  const g=document.getElementById(id); if(!g) return;
+  g.innerHTML='';
+  arr.forEach(c=>{
+    const sw=document.createElement('div');
+    sw.className='psw'; sw.style.background=c.hex;
+    sw.setAttribute('data-tip',c.code+'　'+c.name);
+    sw.onclick=()=>setColor(c.hex,c.name,c.code);
+    g.appendChild(sw);
+  });
+}
+function buildRecent(){
+  const w=document.getElementById('recent-wrap'); if(!w) return;
+  w.innerHTML='';
+  recentColors.slice(0,12).forEach(c=>{
+    const sw=document.createElement('div');
+    sw.style.cssText=`width:22px;height:22px;border-radius:4px;background:${c.hex};cursor:pointer;border:2px solid transparent;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .13s`;
+    sw.title=c.name||c.hex;
+    sw.onclick=()=>setColor(c.hex,c.name||'',c.code||'');
+    sw.onmouseover=()=>sw.style.transform='scale(1.15)';
+    sw.onmouseout=()=>sw.style.transform='scale(1)';
+    w.appendChild(sw);
+  });
+}
+function switchPalTab(t){
+  curPalTab=t;
+  ['wall','roof','custom'].forEach(n=>{
+    document.getElementById('pp-'+n).style.display=n===t?'block':'none';
+    const btn=document.getElementById('ptab-'+n);
+    btn.classList.toggle('on',n===t);
+  });
+}
+function setColor(hex,name,code){
+  curColor=hex;
+  document.getElementById('color-big').style.background=hex;
+  document.getElementById('hex-inp').value=hex.toUpperCase();
+  document.getElementById('cpick').value=hex;
+  if(document.getElementById('cpick2')) document.getElementById('cpick2').value=hex;
+  if(document.getElementById('hex-inp2')) document.getElementById('hex-inp2').value=hex.toUpperCase();
+  document.getElementById('color-name-txt').textContent=(code?code+'　':'')+name;
+  curColorName=name||hex;
+  document.querySelectorAll('.psw').forEach(s=>s.classList.toggle('on',s.style.background===hex||rgbToHex(s.style.background)===hex.toUpperCase()));
+  if(name){ recentColors=recentColors.filter(c=>c.hex!==hex); recentColors.unshift({hex,name,code}); if(recentColors.length>12) recentColors.pop(); localStorage.setItem('rclr',JSON.stringify(recentColors)); buildRecent(); }
+}
+function rgbToHex(rgb){
+  const m=rgb.match(/\d+/g); if(!m||m.length<3) return '';
+  return '#'+m.slice(0,3).map(v=>parseInt(v).toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+function onCPick(v){ setColor(v,'カスタム',''); onBlendChange(); }
+function onHexInp(v){ if(/^#[0-9A-Fa-f]{6}$/.test(v)){ setColor(v,'カスタム',''); onBlendChange(); } }
+function updOpa(){ curOpa=+document.getElementById('c-opa').value/100; document.getElementById('c-opa-v').textContent=Math.round(curOpa*100)+'%'; onBlendChange(); }
+function onBlendChange(){ curBlend=document.getElementById('blend-mode').value; if(selIdx>=0&&layers[selIdx]){layers[selIdx].opacity=curOpa;layers[selIdx].blend=curBlend;redrawAll();} }
+
+/* ======================================================
    EXPORT
-===================================================== */
-function compositeImage() {
-  if (!photoImg) return null;
-  const off = document.createElement('canvas');
-  off.width = IW; off.height = IH;
-  const ctx = off.getContext('2d');
-  ctx.drawImage(photoImg, 0, 0, IW, IH);
-  for (const layer of layers) {
-    if (!layer.visible || !layer.mask || !layer.color) continue;
-    let hex = layer.color.replace('#','');
-    if (hex.length===3) hex=hex.split('').map(c=>c+c).join('');
-    const n = parseInt(hex,16);
-    const fr=(n>>16)&255,fg=(n>>8)&255,fb=n&255;
-    const imgData = ctx.getImageData(0,0,IW,IH);
-    const d = imgData.data;
-    for (let i=0;i<layer.mask.length;i++) {
-      if (!layer.mask[i]) continue;
-      const p = i*4;
-      if (layer.blend==='multiply') {
-        d[p]  =Math.round(d[p]  *fr/255);
-        d[p+1]=Math.round(d[p+1]*fg/255);
-        d[p+2]=Math.round(d[p+2]*fb/255);
-      } else if (layer.blend==='source-over') {
-        const a = layer.opacity;
-        d[p]  =Math.round(d[p]  *(1-a)+fr*a);
-        d[p+1]=Math.round(d[p+1]*(1-a)+fg*a);
-        d[p+2]=Math.round(d[p+2]*(1-a)+fb*a);
-      } else {
-        // color / hue — simple tint
-        const a = layer.opacity * 0.6;
-        d[p]  =Math.round(d[p]  *(1-a)+fr*a);
-        d[p+1]=Math.round(d[p+1]*(1-a)+fg*a);
-        d[p+2]=Math.round(d[p+2]*(1-a)+fb*a);
-      }
+====================================================== */
+function compositeImage(){
+  if(!photoImg) return null;
+  const off=document.createElement('canvas'); off.width=IW; off.height=IH;
+  const ctx=off.getContext('2d');
+  ctx.drawImage(photoImg,0,0,IW,IH);
+  const pd2=ctx.getImageData(0,0,IW,IH);
+  const d=pd2.data;
+  for(const layer of layers){
+    if(!layer.visible||!layer.mask||!layer.color) continue;
+    const hn=layer.color.replace('#',''); const n=parseInt(hn.length===3?hn.split('').map(c=>c+c).join(''):hn,16);
+    const fr=(n>>16)&255,fg=(n>>8)&255,fb=n&255,fa=layer.opacity;
+    for(let i=0;i<layer.mask.length;i++){
+      if(!layer.mask[i]) continue;
+      const p=i*4;
+      if(layer.blend==='multiply'){ d[p]=Math.round(d[p]*fr/255); d[p+1]=Math.round(d[p+1]*fg/255); d[p+2]=Math.round(d[p+2]*fb/255); }
+      else if(layer.blend==='source-over'){ d[p]=Math.round(d[p]*(1-fa)+fr*fa); d[p+1]=Math.round(d[p+1]*(1-fa)+fg*fa); d[p+2]=Math.round(d[p+2]*(1-fa)+fb*fa); }
+      else{ const a=fa*0.65; d[p]=Math.round(d[p]*(1-a)+fr*a); d[p+1]=Math.round(d[p+1]*(1-a)+fg*a); d[p+2]=Math.round(d[p+2]*(1-a)+fb*a); }
     }
-    ctx.putImageData(imgData,0,0);
   }
-  return off;
+  ctx.putImageData(pd2,0,0); return off;
 }
-
-function exportPNG() {
-  const off = compositeImage(); if (!off) { toast('写真をアップロードしてください','err'); return; }
-  const link = document.createElement('a');
-  link.download = '外壁カラーシミュレーション.png';
-  link.href = off.toDataURL('image/png');
-  link.click(); toast('✅ PNG画像を保存しました','ok');
+function exportPNG(){
+  const off=compositeImage(); if(!off){toast('写真をアップロードしてください','err');return;}
+  const a=document.createElement('a'); a.download='外壁カラーシミュレーション.png'; a.href=off.toDataURL('image/png'); a.click(); toast('✅ PNG保存しました','ok');
 }
-
-function exportComparison() {
-  if (!photoImg) { toast('写真をアップロードしてください','err'); return; }
-  const after = compositeImage();
-  const pad=20, lbH=30, W=IW*2+pad*3, H=IH+lbH+pad*2;
-  const off = document.createElement('canvas'); off.width=W; off.height=H;
-  const ctx = off.getContext('2d');
-  ctx.fillStyle='#1A1E28'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#A0AACC'; ctx.font='bold 16px sans-serif';
-  ctx.fillText('施工前（現状）', pad, lbH+pad-4);
-  ctx.drawImage(photoImg, pad, lbH+pad, IW, IH);
-  ctx.fillStyle='#4F8EF7';
-  ctx.fillText('施工後（提案カラー）', IW+pad*2, lbH+pad-4);
-  ctx.drawImage(after, IW+pad*2, lbH+pad, IW, IH);
-  const link = document.createElement('a');
-  link.download = '外壁カラー比較.png'; link.href = off.toDataURL('image/png'); link.click();
-  toast('✅ 比較画像を保存しました','ok');
+function exportComparison(){
+  if(!photoImg){toast('写真をアップロードしてください','err');return;}
+  const after=compositeImage();
+  const pad=20,lH=32,W=IW*2+pad*3,H=IH+lH+pad*2;
+  const off=document.createElement('canvas'); off.width=W; off.height=H;
+  const ctx=off.getContext('2d');
+  ctx.fillStyle='#151820'; ctx.fillRect(0,0,W,H);
+  ctx.font='bold 15px sans-serif';
+  ctx.fillStyle='#A0AACC'; ctx.fillText('施工前（現状）',pad,lH+pad-5);
+  ctx.drawImage(photoImg,pad,lH+pad,IW,IH);
+  ctx.fillStyle='#4F8EF7'; ctx.fillText('施工後（提案カラー）',IW+pad*2,lH+pad-5);
+  ctx.drawImage(after,IW+pad*2,lH+pad,IW,IH);
+  const a=document.createElement('a'); a.download='外壁カラー比較.png'; a.href=off.toDataURL('image/png'); a.click(); toast('✅ 比較画像を保存しました','ok');
 }
-
-function exportPDF() {
-  if (!photoImg) { toast('写真をアップロードしてください','err'); return; }
-  const after = compositeImage();
-  const beforeSrc = photoImg.src;
-  const afterSrc  = after.toDataURL('image/jpeg',0.92);
-  const colorInfo = layers.map(l => `<tr><td style="padding:4px 10px;border-bottom:1px solid #eee"><div style="display:inline-block;width:14px;height:14px;background:${l.color};border-radius:3px;margin-right:6px;vertical-align:middle"></div>${l.name}</td><td style="padding:4px 10px;border-bottom:1px solid #eee;font-family:monospace">${l.color}</td></tr>`).join('');
-
-  const div = document.createElement('div');
-  div.style.cssText = 'width:1040px;font-family:sans-serif;background:#fff;padding:0';
-  div.innerHTML = `
-    <div style="background:#103D70;color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center">
-      <div><div style="font-size:16px;font-weight:700;letter-spacing:.05em">外壁塗装カラーシミュレーション 御提案書</div><div style="font-size:10px;opacity:.65;margin-top:3px">EXTERIOR PAINTING COLOR SIMULATION PROPOSAL</div></div>
-      <div style="text-align:right;font-size:10px;opacity:.65;line-height:1.7">株式会社〇〇リフォーム<br>TEL: 0120-XXX-XXX</div>
+function exportPDF(){
+  if(!photoImg){toast('写真をアップロードしてください','err');return;}
+  const after=compositeImage();
+  const bSrc=photoImg.src, aSrc=after.toDataURL('image/jpeg',.92);
+  const ci=layers.map(l=>`<tr><td style="padding:4px 9px;border-bottom:1px solid #eee"><div style="display:inline-block;width:12px;height:12px;background:${l.color};border-radius:2px;margin-right:5px;vertical-align:middle"></div>${l.name}</td><td style="padding:4px 9px;border-bottom:1px solid #eee;font-family:monospace;font-size:10px">${l.color}</td></tr>`).join('');
+  const div=document.createElement('div');
+  div.style.cssText='width:1040px;font-family:sans-serif;background:#fff;padding:0';
+  div.innerHTML=`
+    <div style="background:#103D70;color:#fff;padding:13px 24px;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:15px;font-weight:700;letter-spacing:.05em">外壁塗装カラーシミュレーション 御提案書</div><div style="font-size:10px;opacity:.6;margin-top:2px">EXTERIOR PAINTING COLOR SIMULATION PROPOSAL</div></div>
+      <div style="text-align:right;font-size:10px;opacity:.6;line
+      <span>日付：<input style="border:none;border-bottom:1px solid #ccc;width:100px;font-size:12px" placeholder="${new Date().toLocaleDateString('ja')}"></span>
     </div>
-    <div style="height:3px;background:linear-gradient(90deg,#E8A830,#F0C860,#E8A830)"></div>
-    <div style="padding:12px 24px;background:#F4F7FB;border-bottom:1px solid #DDE3EC;display:flex;gap:20px;font-size:12px">
-      <span>お客様名：<input style="border:none;border-bottom:1px solid #ccc;width:130px;font-size:12px" placeholder="山田 太郎　様"></span>
-      <span>住所：<input style="border:none;border-bottom:1px solid #ccc;width:200px;font-size:12px" placeholder="東京都〇〇区〇〇1-2-3"></span>
-      <span>日付：<input style="border:none;border-bottom:1px solid #ccc;width:110px;font-size:12px" placeholder="${new Date().toLocaleDateString('ja')}"></span>
+    <div style="display:flex;padding:14px 24px;gap:16px">
+      <div style="flex:1"><div style="font-size:10px;font-weight:700;padding:3px 9px;background:#F0F2F6;border:1px solid #DDE3EC;border-radius:3px;margin-bottom:6px;text-align:center;color:#40506A">◼ 施工前（現状）</div><img src="${bSrc}" style="width:100%;border:1px solid #ddd;border-radius:3px;display:block"></div>
+      <div style="flex:1"><div style="font-size:10px;font-weight:700;padding:3px 9px;background:#E8F1FB;border:1px solid #BCD0EE;border-radius:3px;margin-bottom:6px;text-align:center;color:#1A5CA0">◼ 施工後（提案カラー）</div><img src="${aSrc}" style="width:100%;border:1px solid #ddd;border-radius:3px;display:block"></div>
     </div>
-    <div style="display:flex;padding:16px 24px;gap:18px">
-      <div style="flex:1">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;padding:4px 9px;background:#F0F2F6;border:1px solid #DDE3EC;border-radius:3px;margin-bottom:6px;text-align:center;color:#40506A">◼ 施工前（現状）</div>
-        <img src="${beforeSrc}" style="width:100%;border:1px solid #ddd;border-radius:3px;display:block">
-        <div style="font-size:9px;color:#888;text-align:center;padding-top:3px">※現状の外壁カラー</div>
-      </div>
-      <div style="flex:1">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;padding:4px 9px;background:#E8F1FB;border:1px solid #BCD0EE;border-radius:3px;margin-bottom:6px;text-align:center;color:#1A5CA0">◼ 施工後（提案カラー）</div>
-        <img src="${afterSrc}" style="width:100%;border:1px solid #ddd;border-radius:3px;display:block">
-        <div style="font-size:9px;color:#1A5CA0;text-align:center;padding-top:3px;font-weight:700">※シミュレーターの提案カラー</div>
-      </div>
-      <div style="width:200px;flex-shrink:0">
-        <div style="background:#103D70;color:#fff;font-size:10px;font-weight:700;padding:6px 11px;border-radius:4px 4px 0 0;letter-spacing:.07em">🎨 使用カラー仕様</div>
-        <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #ddd;border-top:none">${colorInfo||'<tr><td style="padding:10px;color:#888;text-align:center">塗装データなし</td></tr>'}</table>
-        <div style="margin-top:10px;border:1px solid #ddd;border-radius:4px;overflow:hidden">
-          <div style="background:#F4F7FB;font-size:10px;font-weight:700;padding:6px 11px;border-bottom:1px solid #ddd">📝 担当者コメント</div>
-          <div style="height:80px;padding:8px;font-size:11px;color:#888">自由記入欄</div>
-        </div>
-      </div>
-    </div>
-    <div style="border-top:1px solid #eee;padding:7px 24px;background:#F4F7FB;font-size:9px;color:#888">
-      ※本提案書はカラーシミュレーション用資料です。実際の仕上がり色は塗料メーカーのサンプルで必ずご確認ください。
-    </div>`;
+    <div style="border-top:1px solid #eee;padding:6px 24px;background:#F4F7FB;font-size:9px;color:#888">※本提案書はカラーシミュレーション用資料です。</div>`;
   document.body.appendChild(div);
-  html2pdf().set({margin:0,filename:'外壁塗装カラー提案書.pdf',image:{type:'jpeg',quality:.96},html2canvas:{scale:2,useCORS:true,allowTaint:true},jsPDF:{unit:'mm',format:'a4',orientation:'landscape'}}).from(div).save().then(()=>{document.body.removeChild(div);toast('✅ PDFを保存しました','ok');}).catch(e=>{document.body.removeChild(div);toast('PDFエラー: '+e.message,'err');});
+  html2pdf().set({margin:0,filename:'外壁塗装カラー提案書.pdf',image:{type:'jpeg',quality:.96},html2canvas:{scale:2,useCORS:true,allowTaint:true},jsPDF:{unit:'mm',format:'a4',orientation:'landscape'}}).from(div).save()
+    .then(()=>{document.body.removeChild(div);toast('✅ PDFを保存しました','ok');})
+    .catch(e=>{document.body.removeChild(div);toast('PDFエラー: '+e.message,'err');});
 }
 
-/* =====================================================
-   SAVE / LOAD WORK
-===================================================== */
-function saveWork() {
-  if (!photoImg) { toast('先に写真をアップロードしてください','err'); return; }
-  try {
-    const data = {
-      v: 1, savedAt: new Date().toISOString(),
-      photo: cPhoto.toDataURL('image/jpeg',0.82),
-      IW, IH,
-      layers: layers.map(l=>({...l,mask:l.mask?Array.from(l.mask):null})),
-      selLayerIdx, layerCounter
-    };
-    localStorage.setItem('wallsim_work', JSON.stringify(data));
+function saveWork(){
+  if(!photoImg){toast('写真をアップロードしてください','err');return;}
+  try{
+    const data={v:2,savedAt:new Date().toISOString(),photo:cPhoto.toDataURL('image/jpeg',.82),IW,IH,
+      layers:layers.map(l=>({...l,mask:l.mask?Array.from(l.mask):null})),selIdx,layerCnt};
+    localStorage.setItem('wcsim_work',JSON.stringify(data));
     toast('✅ 作業を保存しました','ok');
-  } catch(e) { toast('保存失敗: '+e.message,'err'); }
+  }catch(e){toast('保存失敗: '+e.message,'err');}
 }
-
-function loadWork() {
-  const raw = localStorage.getItem('wallsim_work');
-  if (!raw) { toast('保存された作業がありません','err'); return; }
-  try {
-    const data = JSON.parse(raw);
-    const img = new Image();
-    img.onload = () => {
-      photoImg = img; IW = data.IW; IH = data.IH;
-      layers = data.layers.map(l=>({...l,mask:l.mask?new Uint8Array(l.mask):null}));
-      selLayerIdx = data.selLayerIdx; layerCounter = data.layerCounter;
-      zoom = 'init'; panX = panY = 0;
-      document.getElementById('upload-overlay').style.display = 'none';
-      document.getElementById('zoom-ctrl').style.display = 'flex';
-      document.getElementById('st-size').textContent = `${IW}×${IH}px`;
-      placeCanvases(); buildLayerList(); updateSummary();
-      const d = new Date(data.savedAt);
-      toast(`✅ 作業を再開しました（${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}）`,'ok');
+function loadWork(){
+  const raw=localStorage.getItem('wcsim_work');if(!raw){toast('保存された作業がありません','err');return;}
+  try{
+    const data=JSON.parse(raw);
+    const img=new Image();
+    img.onload=()=>{
+      photoImg=img;IW=data.IW;IH=data.IH;
+      layers=data.layers.map(l=>({...l,mask:l.mask?new Uint8Array(l.mask):null}));
+      selIdx=data.selIdx;layerCnt=data.layerCnt;
+      _photoDataCache=null;zoom='init';panX=panY=0;
+      if(selIdx>=0&&layers[selIdx])selMask=layers[selIdx].mask;else selMask=null;
+      document.getElementById('upload-ph').style.display='none';
+      document.getElementById('zoom-hud').style.display='flex';
+      document.getElementById('st-size').textContent=IW+'×'+IH+'px';
+      document.getElementById('st-dot').classList.add('on');
+      placeCanvases();buildLayerList();updateSummary();
+      const d=new Date(data.savedAt);
+      toast('✅ 作業を再開しました','ok');
     };
-    img.src = data.photo;
-  } catch(e) { toast('読み込み失敗: '+e.message,'err'); }
+    img.src=data.photo;
+  }catch(e){toast('読み込み失敗: '+e.message,'err');}
 }
 
-/* =====================================================
-   TOAST
-===================================================== */
-function toast(msg, type='') {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast show'+(type?' '+type:'');
-  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'), 3200);
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(type?' '+type:'');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200);
 }
 
-/* =====================================================
-   INIT
-===================================================== */
-buildPalette();
-setTool('wand');
-setColor('#F0EDE0', 'ミストホワイト', 'DT-N87');
-switchTab('wall');
+buildPalettes();
+setTool('rect');
+setColor('#F0EDE0','ミストホワイト','DT-N87');
+switchPalTab('wall');
 </script>
 </body>
 </html>
