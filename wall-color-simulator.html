@@ -259,6 +259,21 @@ input.cpick{position:absolute;width:0;height:0;opacity:0}
       </div>
     </div>
 
+    <!-- Claudeチャット経由で解析した結果を貼り付けるセクション -->
+    <div style="background:#F5F0FF;border:1px solid #C8A8F0;border-radius:var(--rs);padding:10px;margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:#5A1A90;margin-bottom:6px">📋 Claudeのチャットから貼り付け</div>
+      <div style="font-size:10px;color:#7A4AA0;line-height:1.6;margin-bottom:7px">Claudeのチャット画面でJSONが返ってきたら↓のボタンで取り込めます</div>
+      <textarea id="claude-json-inp" placeholder='{"exclude":[...]} を貼り付け' style="width:100%;height:60px;border:1.5px solid #C8A8F0;border-radius:var(--rs);padding:6px 8px;font-size:10px;font-family:monospace;color:var(--tx);outline:none;resize:none;background:#fff;line-height:1.5;margin-bottom:6px"></textarea>
+      <div style="display:flex;gap:5px">
+        <button onclick="pasteFromClipboard()" style="flex:1;background:#fff;border:1.5px solid #C8A8F0;border-radius:var(--rs);padding:8px;font-size:11px;font-weight:700;cursor:pointer;color:#5A1A90;display:flex;align-items:center;justify-content:center;gap:4px;-webkit-tap-highlight-color:transparent">
+          📋 クリップボードから貼り付け
+        </button>
+        <button onclick="applyClaudeJson()" style="background:linear-gradient(135deg,#7040C0,var(--acc));color:#fff;border:none;border-radius:var(--rs);padding:8px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+          ✓ 適用
+        </button>
+      </div>
+    </div>
+
     <!-- 除外エリア一覧 -->
     <div id="excl-list-wrap" style="display:none;margin-top:2px">
       <div style="font-size:9px;color:var(--tx3);margin-bottom:5px;letter-spacing:.06em">■ 検出された非塗装エリア（クリックで除外ON/OFF）</div>
@@ -1446,8 +1461,53 @@ function clearExclusions(){
 function updateAIThumb(){}
 function oneTabSend(){ runAIAnalysis(); }
 function copyAIPrompt(){ runAIAnalysis(); }
+
 function pasteAIJson(){}
 function applyAIExclude(){}
+
+/* クリップボードから貼り付け（iPad/Mac/Windows対応） */
+function pasteFromClipboard(){
+  navigator.clipboard.readText().then(text=>{
+    document.getElementById('claude-json-inp').value = text;
+    toast('✅ 貼り付けました。「✓ 適用」を押してください','ok');
+  }).catch(()=>{
+    const ta = document.getElementById('claude-json-inp');
+    ta.focus(); ta.select();
+    toast('テキストボックスを長押し→「ペースト」してください');
+  });
+}
+
+/* ClaudeチャットのJSONを適用 */
+function applyClaudeJson(){
+  const raw = document.getElementById('claude-json-inp').value.trim();
+  if(!raw){ toast('JSONを貼り付けてください','err'); return; }
+  try{
+    const m = raw.match(/\{[\s\S]*"exclude"[\s\S]*\}/);
+    if(!m) throw new Error('"exclude" が見つかりません');
+    const parsed = JSON.parse(m[0]);
+    const arr    = parsed.exclude || [];
+    if(!arr.length) throw new Error('除外エリアが空です');
+
+    saveU();
+    arr.forEach(ex => {
+      const existing = exclusions.find(e => e.id === ex.id);
+      if(existing){ existing.rects=ex.rects; existing.label=ex.label; existing.visible=true; }
+      else exclusions.push({...ex, visible:true});
+    });
+    if(selMask){ applyExclusionsToMask(selMask); markSelDirty(); }
+    for(const layer of layers){
+      if(layer.mask){ applyExclusionsToMask(layer.mask); markLayerDirty(layer.id); }
+    }
+    markExclDirty();
+    buildExclList();
+    document.getElementById('excl-list-wrap').style.display = 'block';
+    document.getElementById('claude-json-inp').value = '';
+    draw();
+    toast(`✅ ${arr.length}個の非塗装エリアを除外しました！🖌️ブラシで微調整できます`,'ok');
+  }catch(e){
+    toast('JSON読み込みエラー: '+e.message,'err');
+  }
+}
 
 function saveWork(){
   if(!photo){toast('写真をアップロードしてください','err');return;}
