@@ -242,14 +242,22 @@ input.cpick{position:absolute;width:0;height:0;opacity:0}
       このチャット（Claude）経由で解析するので追加費用ゼロ。
     </div>
 
-    <!-- STEP 1: 写真をコピー -->
+    <!-- STEP 1: ワンタップ送信 -->
     <div style="background:var(--panel2);border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:8px">
       <div style="font-size:10px;font-weight:700;color:var(--acc);margin-bottom:6px">STEP 1　写真をClaudeに送る</div>
-      <canvas id="ai-thumb" style="width:100%;border-radius:5px;border:1px solid var(--border);display:block;background:#ccc;max-height:120px;object-fit:cover"></canvas>
-      <button onclick="copyAIPrompt()" style="width:100%;margin-top:7px;background:var(--acc);color:#fff;border:none;border-radius:var(--rs);padding:9px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-        📋 プロンプトをコピーしてClaudeに送る
+      <canvas id="ai-thumb" style="width:100%;border-radius:5px;border:1px solid var(--border);display:block;background:#ccc;max-height:110px;object-fit:cover"></canvas>
+
+      <!-- ワンタップボタン -->
+      <button onclick="oneTabSend()" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#7040C0,var(--acc));color:#fff;border:none;border-radius:var(--rs);padding:11px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 3px 10px rgba(112,64,192,.3);transition:filter .15s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">
+        🚀 ワンタップ送信（写真保存＋Claude.aiを開く）
       </button>
-      <div style="font-size:9px;color:var(--tx3);margin-top:5px;line-height:1.5">↑ ボタンを押してから、このチャット画面に写真と一緒にプロンプトを貼り付けて送信してください</div>
+
+      <div style="background:#FDF8FF;border:1px solid #D8C0F0;border-radius:var(--rs);padding:8px 10px;margin-top:8px;font-size:10px;color:#5A3A80;line-height:1.7">
+        ① 写真が自動でダウンロードされます<br>
+        ② Claude.aiが新しいタブで開きます<br>
+        ③ プロンプトは自動でコピー済みです<br>
+        ④ Claude.aiで写真を添付 → プロンプトを貼り付けて送信
+      </div>
     </div>
 
     <!-- STEP 2: JSON貼り付け -->
@@ -1319,6 +1327,33 @@ const AI_EXCL_PROMPT = `この建物の写真を解析し、「塗装しない�
 
 検出対象：サッシ・窓枠・ガラス・アルミベランダ・金属手すり・縦樋・配管・室外機・換気口・ポスト・表札など塗装しない全ての部分
 各エリアのrectsは複数指定可（縦横に分けてOK）。見えない部位は含めないでください。`;
+
+function oneTabSend(){
+  if(!photo){ toast('先に写真をアップロードしてください','err'); return; }
+
+  // ① 写真をダウンロード
+  const tmp=document.createElement('canvas'); tmp.width=IW; tmp.height=IH;
+  tmp.getContext('2d').drawImage(photo,0,0,IW,IH);
+  const photoLink=document.createElement('a');
+  photoLink.download='解析用写真.jpg';
+  photoLink.href=tmp.toDataURL('image/jpeg',0.92);
+  photoLink.click();
+
+  // ② プロンプトをクリップボードにコピー
+  const copyAndOpen=()=>{
+    navigator.clipboard.writeText(AI_EXCL_PROMPT).catch(()=>{
+      const ta=document.createElement('textarea');
+      ta.value=AI_EXCL_PROMPT; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    });
+    // ③ Claude.aiを新しいタブで開く
+    window.open('https://claude.ai','_blank');
+    toast('✅ 写真を保存＆Claude.aiを開きました！写真を添付してプロンプトを貼り付けて送信してください','ok');
+  };
+
+  // 少し待ってからコピー＆開く（ダウンロードダイアログと重ならないように）
+  setTimeout(copyAndOpen, 400);
+}
 
 function copyAIPrompt(){
   // サムネイルを最新に更新
