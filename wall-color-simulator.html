@@ -655,38 +655,31 @@ cDraw.addEventListener('pointerdown', e=>{
   const {cx,cy}=getCanvasXY(e);
   const {ix,iy}=toImgXY(cx,cy);
 
-  // Pan
-  if(curTool==='move'||e.altKey||e.button===1){
+  // Pan: 移動ツール OR スペースバー OR 中ボタン OR 2本指タッチ
+  if(curTool==='move'||e.altKey||e.button===1||spaceDown){
     isPan=true; panSX=e.clientX-panX; panSY=e.clientY-panY;
     cDraw.style.cursor='grabbing'; return;
   }
 
   if(curTool==='rect'){
-    // Start rect
     selPoints=[{ix,iy}]; selFinished=false; selMask=null;
     rectStart={ix,iy};
     ctxD.clearRect(0,0,CW,CH);
   } else if(curTool==='lasso'){
     if(!lassoDrawing){
-      // First point
       if(!selPoints.length){ selPoints=[{ix,iy}]; lassoDrawing=true; selFinished=false; selMask=null; }
       else {
-        // Check if clicking near first point to close
         const fp=selPoints[0];
         const dist=Math.hypot((ix-fp.ix)*zoom,(iy-fp.iy)*zoom);
-        if(dist<12 && selPoints.length>2){
-          finalizeLasso(); return;
-        }
+        if(dist<12 && selPoints.length>2){ finalizeLasso(); return; }
         selPoints.push({ix,iy});
       }
     }
     redrawAll();
   } else if(curTool==='wand'){
-    saveUndo();
-    doWand(ix,iy);
+    saveUndo(); doWand(ix,iy);
   } else if(curTool==='add'||curTool==='erase'){
-    saveUndo(); brushDown=true;
-    doBrush(ix,iy);
+    saveUndo(); brushDown=true; doBrush(ix,iy);
   }
 });
 
@@ -700,13 +693,11 @@ cDraw.addEventListener('pointermove', e=>{
   if(isPan){ panX=e.clientX-panSX; panY=e.clientY-panSY; placeCanvases(); return; }
 
   if(curTool==='rect' && rectStart && e.buttons){
-    // Draw rect preview
     const rx0=Math.min(rectStart.ix,ix), ry0=Math.min(rectStart.iy,iy);
     const rx1=Math.max(rectStart.ix,ix), ry1=Math.max(rectStart.iy,iy);
     selPoints=[{ix:rx0,iy:ry0},{ix:rx1,iy:ry0},{ix:rx1,iy:ry1},{ix:rx0,iy:ry1}];
     redrawAll();
   } else if(curTool==='lasso' && lassoDrawing && selPoints.length){
-    // Preview last segment
     const pts=selPoints.map(p=>({x:p.ix*zoom,y:p.iy*zoom}));
     ctxD.clearRect(0,0,CW,CH);
     drawSelPolygon();
@@ -719,7 +710,7 @@ cDraw.addEventListener('pointermove', e=>{
 });
 
 cDraw.addEventListener('pointerup', e=>{
-  if(isPan){ isPan=false; cDraw.style.cursor=curTool==='move'?'grab':'crosshair'; return; }
+  if(isPan){ isPan=false; cDraw.style.cursor=spaceDown?'grab':(curTool==='move'?'grab':'crosshair'); return; }
   if(curTool==='rect' && rectStart){
     const {cx,cy}=getCanvasXY(e);
     const {ix,iy}=toImgXY(cx,cy);
@@ -727,8 +718,7 @@ cDraw.addEventListener('pointerup', e=>{
     const rx1=Math.max(rectStart.ix,ix), ry1=Math.max(rectStart.iy,iy);
     if(Math.abs(rx1-rx0)>4 && Math.abs(ry1-ry0)>4){
       selPoints=[{ix:rx0,iy:ry0},{ix:rx1,iy:ry0},{ix:rx1,iy:ry1},{ix:rx0,iy:ry1}];
-      selFinished=true;
-      buildSelMask();
+      selFinished=true; buildSelMask();
       setStepActive(2);
       showGuide('✨「囲んだ範囲を解析して塗る」ボタンを押してください');
     }
@@ -741,14 +731,75 @@ cDraw.addEventListener('dblclick', e=>{
   if(curTool==='lasso' && lassoDrawing && selPoints.length>2){ finalizeLasso(); }
 });
 
-cDraw.addEventListener('touchstart',  e=>e.preventDefault(),{passive:false});
-cDraw.addEventListener('touchmove',   e=>e.preventDefault(),{passive:false});
+// タッチ操作（iPad対応）: 1本指=通常操作、2本指=パン＆ピンチズーム
+let touchPanStartX=0, touchPanStartY=0, touchPan=false;
+let pinchStartDist=0, pinchStartZoom=1;
+
+cDraw.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  if(e.touches.length===2){
+    // 2本指：パン＆ピンチ開始
+    touchPan=true;
+    touchPanStartX=(e.touches[0].clientX+e.touches[1].clientX)/2-panX;
+    touchPanStartY=(e.touches[0].clientY+e.touches[1].clientY)/2-panY;
+    pinchStartDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    pinchStartZoom=zoom;
+  } else {
+    touchPan=false;
+  }
+},{passive:false});
+
+cDraw.addEventListener('touchmove', e=>{
+  e.preventDefault();
+  if(e.touches.length===2){
+    // 2本指パン
+    const mx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+    const my=(e.touches[0].clientY+e.touches[1].clientY)/2;
+    panX=mx-touchPanStartX; panY=my-touchPanStartY;
+    // ピンチズーム
+    const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    zoom=Math.max(0.08,Math.min(10, pinchStartZoom*(dist/pinchStartDist)));
+    placeCanvases();
+  }
+},{passive:false});
+
+cDraw.addEventListener('touchend', e=>{
+  if(e.touches.length<2) touchPan=false;
+},{passive:false});
+
 cDraw.addEventListener('pointerleave',()=>{ brushDown=false; });
 
-// Wheel zoom
+// スペースバーでパンモード切替
+let spaceDown=false;
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'&&!e.repeat){
+    spaceDown=true;
+    cDraw.style.cursor='grab';
+    e.preventDefault();
+  }
+});
+document.addEventListener('keyup',e=>{
+  if(e.code==='Space'){
+    spaceDown=false;
+    if(!isPan) cDraw.style.cursor=curTool==='move'?'grab':'crosshair';
+  }
+});
+
+// Wheel zoom（マウスホイール）
 cw.addEventListener('wheel',e=>{
   e.preventDefault();
-  zoom=Math.max(0.08,Math.min(10,zoom*(e.deltaY>0?0.9:1.11)));
+  const delta=e.deltaY>0?0.88:1.14;
+  const newZoom=Math.max(0.08,Math.min(10,zoom*delta));
+  // ズーム中心をマウス位置に合わせる
+  const r=cw.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  const ww=cw.clientWidth, wh=cw.clientHeight;
+  const imgCX=(ww-CW)/2+panX, imgCY=(wh-CH)/2+panY;
+  const relX=mx-imgCX, relY=my-imgCY;
+  const ratio=newZoom/zoom;
+  panX=mx-(imgCX+relX*ratio)-( ww-newZoom*IW)/2+ (ww-CW)/2+panX - (relX*(ratio-1))+( (ww-CW)/2+panX);
+  // 簡略版：中心ズーム
+  zoom=newZoom;
   placeCanvases();
 },{passive:false});
 
@@ -1050,12 +1101,6 @@ function redoAct(){
   undoStack.push(ser()); layers=des(redoStack.pop());
   buildLayerList(); redrawAll(); updateSummary();
 }
-document.addEventListener('keydown',e=>{
-  const c=e.ctrlKey||e.metaKey;
-  if(c&&e.key==='z'){e.preventDefault();undoAct();}
-  if(c&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redoAct();}
-  if(e.key==='Escape') clearSel();
-});
 
 /* ======================================================
    ZOOM / PAN
